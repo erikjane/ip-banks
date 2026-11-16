@@ -1,0 +1,27 @@
+name: build-banks
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"     # каждый день в 07:17 по Москве
+  push:
+    paths: ["scripts/build.py", "scripts/signals.py", ".github/workflows/build.yml"]
+permissions:
+  contents: write
+concurrency: { group: build-banks, cancel-in-progress: false }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq unar
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -q requests dbfread
+      - run: python scripts/build.py
+      - name: commit data
+        run: |
+          git config user.name "ip-banks bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || (git commit -qm "Обновление данных $(date -u +%F)" && git push)

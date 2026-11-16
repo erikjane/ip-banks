@@ -1,8 +1,6 @@
 name: probe-cbr
 on:
   workflow_dispatch:
-  push:
-    paths: ["scripts/probe3.py", "scripts/probe2.py", "scripts/probe.py", ".github/workflows/probe.yml"]
 jobs:
   probe:
     runs-on: ubuntu-latest
