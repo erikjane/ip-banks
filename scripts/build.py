@@ -277,6 +277,8 @@ def main():
         for r in summary:
             w.writerow({k: fmt(v) for k, v in r.items()})
 
+    write_ru_tsv("monthly")
+    write_ru_tsv("summary")
     last = max(r["month"] for r in rows_out)
     with open(os.path.join(DATA, "meta.csv"), "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
@@ -291,6 +293,16 @@ def main():
         for regn, gs in sorted(group_log.items()):
             w.writerow([regn, " ".join(sorted(gs))])
     print("rows", len(rows_out), "last", last)
+
+
+def write_ru_tsv(name):
+    """Копия CSV для русской Google Таблицы: табуляция и десятичная запятая."""
+    import re
+    num = re.compile(r"^-?\d+\.\d+$")
+    with open(os.path.join(DATA, f"{name}.csv"), encoding="utf-8") as f, \
+         open(os.path.join(DATA, f"{name}_ru.tsv"), "w", encoding="utf-8") as g:
+        for row in csv.reader(f):
+            g.write("\t".join(c.replace(".", ",") if num.match(c) else c.replace("\t", " ") for c in row) + "\n")
 
 
 def add_months(m, k):
