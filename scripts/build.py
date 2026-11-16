@@ -149,13 +149,14 @@ def calc101(rows):
     funds_corp = s(lambda sc: in_range(sc, 405, 407) or in_range(sc, 410, 422) or sc == "425" or sc == "42.1", "2")
     # капитал по балансовым счетам (упрощённо)
     cap = (s(lambda sc: sc in ("102", "106", "107", "108"), "2") - s(lambda sc: sc in ("105", "106", "109"), "1")
-           + s(lambda sc: sc in ("706",), "2") - s(lambda sc: sc in ("706",), "1"))
+           + s(lambda sc: sc in ("706", "707", "708"), "2") - s(lambda sc: sc in ("706", "707", "708"), "1"))
+    current = s(lambda sc: sc == "408", "2")   # текущие счета (в т.ч. карточные счета физлиц 40817)
     ytd = s(lambda sc: sc == "706", "2") - s(lambda sc: sc == "706", "1")
     ytd_in = s(lambda sc: sc == "706", "2", a_in) - s(lambda sc: sc == "706", "1", a_in)
     assets = s(lambda sc: sc not in ("303", "706") and not sc.startswith("ITG"), "1")
     groups = sorted({sc for (sc, _) in a_out if "." in sc})
     return dict(loans_corp=loans_corp, loans_retail=loans_retail, overdue=overdue, reserves=reserves,
-                dep_retail=dep_retail, funds_corp=funds_corp, cap_bs=cap, ytd=ytd, ytd_in=ytd_in,
+                dep_retail=dep_retail, funds_corp=funds_corp, current=current, cap_bs=cap, ytd=ytd, ytd_in=ytd_in,
                 assets=assets, _groups=groups)
 
 
@@ -234,7 +235,7 @@ def main():
             avg_cap = sum(caps) / 12 if len(caps) == 12 and all(c for c in caps) else None
             loans = x["loans_corp"] + x["loans_retail"]
             gross = loans + x["overdue"]
-            clients = x["dep_retail"] + x["funds_corp"]
+            clients = x["dep_retail"] + x["funds_corp"] + x.get("current", 0)
             row = dict(
                 regnum=regn, bank=name, ticker=ticker, month=m,
                 profit_m=x["profit_m"] / 1e6, profit_ytd=x["ytd"] / 1e6,
@@ -246,7 +247,8 @@ def main():
                 reserves=x["reserves"] / 1e6,
                 reserve_cover=x["reserves"] / x["overdue"] * 100 if x["overdue"] else None,
                 reserve_ratio=x["reserves"] / gross * 100 if gross else None,
-                dep_retail=x["dep_retail"] / 1e6, funds_corp=x["funds_corp"] / 1e6, clients=clients / 1e6,
+                dep_retail=x["dep_retail"] / 1e6, funds_corp=x["funds_corp"] / 1e6, current_accts=x.get("current", 0) / 1e6,
+                clients=clients / 1e6,
                 ldr=loans / clients * 100 if clients else None,
                 assets=x["assets"] / 1e6, cap_bs=x["cap_bs"] / 1e6,
                 reg_capital=x.get("reg_capital") / 1e6 if x.get("reg_capital") else None,

@@ -77,6 +77,13 @@ def build_summary(rows, banks):
         s["s_deposits"] = sign(dd, 0.0, TH["dep_pct"])
         if s["s_deposits"] == "серый" and dd is not None and dd < 0:
             s["s_deposits"] = "красный"
+        # банки, где кредиты — не основной бизнес (меньше 5% активов): качество кредитов не оцениваем
+        if x.get("assets") and x["loans"] < 0.05 * x["assets"]:
+            for k in ("s_loans", "s_overdue", "s_cover"):
+                s[k] = "не применимо"
+        if not x.get("dep_retail") or x["dep_retail"] < 1:
+            s["s_deposits"] = "не применимо"
+        young = any(v is not None and v > 100 for v in (dl, dd))
         # 7. достаточность капитала
         h1 = x.get("h1_0")
         s["s_h1"] = "нет данных" if h1 is None else "зелёный" if h1 >= TH["h1_good"] else "красный" if h1 < TH["h1_bad"] else "серый"
@@ -98,8 +105,14 @@ def build_summary(rows, banks):
         greens = sum(v == "зелёный" for v in s.values())
         reds = sum(v == "красный" for v in s.values())
         light = "зелёный" if greens >= 4 and reds <= 1 else "красный" if reds >= 3 else "жёлтый"
+        if young:
+            notes_bad = notes_bad  # не меняем сигналы, но добавляем пояснение ниже
         verdict = "; ".join([", ".join(notes_good[:3]).capitalize()] * bool(notes_good)
                             + [("но " if notes_good else "") + ", ".join(notes_bad[:3])] * bool(notes_bad)) or "без заметных изменений"
+        if young:
+            verdict += ". Молодой быстрорастущий банк: проценты роста и ROE несопоставимы с крупными банками"
+        if s["s_loans"] == "не применимо":
+            verdict += ". Кредитование — не основной бизнес банка"
 
         out.append(dict(
             regnum=regn, bank=name, ticker=ticker, month=m,
@@ -113,6 +126,7 @@ def build_summary(rows, banks):
             reserve_cover=cov, s_cover=s["s_cover"],
             dep_retail=x["dep_retail"], dep_retail_yoy_pct=dd, s_deposits=s["s_deposits"],
             h1_0=h1, s_h1=s["s_h1"],
-            ldr=x.get("ldr"), assets=x.get("assets"),
+            ldr=x.get("ldr"), assets=x.get("assets"), young="да" if young else "",
+            profit_ytd_check102=x.get("net102_ytd"),
         ))
     return out
