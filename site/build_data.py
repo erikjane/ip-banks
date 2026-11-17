@@ -195,9 +195,35 @@ def build_clock(src, cfg):
     if not all(a in "ABCD" and a for a in answers):
         return None
     date = value("дата обновления")
-    if isinstance(date, (int, float)):
+    if isinstance(date, (int, float)) and date:
         date = (dt.date(1899, 12, 30) + dt.timedelta(days=int(date))).strftime("%d.%m.%Y")
-    return {"date": str(date), "answers": answers, "comment": str(value("комментарий") or "")}
+    if not str(date).strip():  # дату не поставили — берём сегодняшнюю (Москва)
+        date = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=3)).strftime("%d.%m.%Y")
+    res = {"date": str(date), "answers": answers, "comment": str(value("комментарий") or "")}
+    manual = parse_hour(value("время вручную"))
+    if manual is not None:
+        res["hour"] = manual
+    return res
+
+
+def parse_hour(v):
+    """«5», «5:00», «4:30», «4,5» или время из ячейки → часы на циферблате 0–12. Пусто → None."""
+    if v in ("", None):
+        return None
+    if isinstance(v, (int, float)):
+        h = v * 24 if 0 < v < 1 else float(v)          # ячейка-время хранится как доля суток
+    else:
+        s = str(v).strip().replace(",", ".")
+        m = re.match(r"^(\d{1,2})(?:[:.](\d{1,2}))?$", s) if ":" in s else None
+        if m:
+            h = int(m.group(1)) + int(m.group(2) or 0) / 60
+        else:
+            try:
+                h = float(s)
+            except ValueError:
+                return None
+    h = h % 12
+    return round(h, 4)
 
 
 def write_json(path, obj, now, compact=True):

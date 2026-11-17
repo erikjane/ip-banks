@@ -244,6 +244,13 @@ function clockFromAnswers(ans){
   const band=score>=23?"recovery":score>=16?"peak":score>=8?"slowdown":"recession";
   return {hour, strength, score, band, phase:phaseOf(hour)};
 }
+// общие часы: время из теста, либо выставленное вручную в таблице (поле «Время вручную»)
+function sharedClock(){
+  const ck=D.clock; if(!ck) return null;
+  const r=clockFromAnswers(ck.answers||[]);
+  if(isNum(ck.hour)){ const p=phaseOf(ck.hour); return Object.assign(r||{}, {hour:ck.hour, phase:p}); }
+  return r;
+}
 function clockSVG(hour, size, opts={}){
   const S=size, cx=S/2, cy=S/2, R=S*0.39;
   const pt=(h,r)=>{const a=(h*30-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]};
@@ -283,7 +290,7 @@ function secChip(id,cls){ const s=(D.catalog?.sectors||[]).find(x=>x.id===id); c
   return s&&s.active? `<a class="chip ${cls}" href="#${id}">${esc(nm)} →</a>` : `<span class="chip ${cls} off">${esc(nm)}</span>`; }
 
 function renderHome(){
-  const T=D.test, ck=D.clock, res=ck?clockFromAnswers(ck.answers):null;
+  const T=D.test, ck=D.clock, res=sharedClock();
   const app=document.getElementById("app");
   let right="";
   if(res){
@@ -335,7 +342,7 @@ function renderTest(box){
   box.querySelector("#calc").onclick=()=>{
     const miss=ans.map((a,i)=>a?null:i).filter(x=>x!==null);
     if(miss.length){ miss.forEach(i=>document.getElementById("q"+i).classList.add("miss")); document.getElementById("q"+miss[0]).scrollIntoView({behavior:"smooth",block:"center"}); return; }
-    const r=clockFromAnswers(ans), R=D.test.RECS[r.phase.id], shared=D.clock?clockFromAnswers(D.clock.answers):null;
+    const r=clockFromAnswers(ans), R=D.test.RECS[r.phase.id], shared=sharedClock();
     const li=a=>a.map(x=>`<li>${esc(x)}</li>`).join("");
     document.getElementById("out").innerHTML=`<div class="res">
       <div style="text-align:center">${clockSVG(r.hour,320,{labels:false,w:"100%",second:shared?shared.hour:null})}
