@@ -120,7 +120,7 @@ td.ltm,th.ltm{background:#F5F8FF}
 td.neg{color:var(--downText)}
 td.avg,th.avg{background:#FBFCE9}
 td.lo{background:#DCFCE7 !important;color:#14532D} td.hi{background:#FEE2E2 !important;color:#7F1D1D} td.nm{color:var(--muted)}
-tr.off td{color:#94A3B8} tr.off td:first-child{color:#94A3B8}
+tr.off td{color:#94A3B8 !important} tr.off td:first-child{color:#94A3B8}
 tr.link{cursor:pointer} tr.link:hover td{background:var(--soft)}
 tr.total td{font-weight:800;background:#FBFCE9}
 .soon{font-size:11px;font-weight:700;color:var(--muted);background:#F1F5F9;border-radius:6px;padding:2px 7px;margin-left:8px}
@@ -176,6 +176,19 @@ td.c-g{background:#F0FDF4} td.c-r{background:#FEF2F2} td.c-y{background:#FFFBEB}
 .cm{white-space:normal;text-align:left;color:var(--muted);font-size:12px;min-width:220px;max-width:360px}
 .dv{display:block;font-size:10px;font-weight:800;color:var(--up)}
 select.inl{font:inherit;font-weight:700;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--navy)}
+
+/* таблицы: тёмная шапка, чередование строк, подсветка лучше/хуже среднего */
+.tbl thead th{background:var(--navy) !important;color:#fff !important;border-bottom:0}
+.tbl tbody tr:nth-child(even)>td{background:#EEF3FF}
+.tbl tbody tr:nth-child(odd)>td{background:#FFFFFF}
+.tbl tbody tr.grp>td{background:#DCE6FF !important}
+.tbl tbody tr.total>td{background:#FBFCE9 !important}
+.tbl tbody tr.link:hover>td{background:#DCE6FF}
+.tbl td.gd{background:#DCFCE7 !important;color:#14532D;font-weight:700}
+.tbl td.bd{background:#FEE2E2 !important;color:#7F1D1D;font-weight:700}
+.tbl td.c-g{background:#DCFCE7 !important} .tbl td.c-r{background:#FEE2E2 !important} .tbl td.c-y{background:#FEF3C7 !important}
+.tbl td.lo{background:#DCFCE7 !important} .tbl td.hi{background:#FEE2E2 !important}
+.tbl td.avg{background:#F7F9E3 !important}
 
 /* большие экраны */
 @media(min-width:1500px){
@@ -512,15 +525,22 @@ function riskTable(){
   const names=g[h].slice(1).map(x=>String(x??"").trim()).filter(Boolean);
   const rows=[]; for(let r=h+1;r<g.length;r++){ const l=String(g[r][0]??"").trim(); if(!l||l.startsWith("@")) break; rows.push(r); }
   const cap=t=>/^[pр]\/[eеbв]$/i.test(t)?t.toUpperCase().replace("Р","P").replace("Е","E").replace("В","B"):t.charAt(0).toUpperCase()+t.slice(1);
-  const body=rows.map(r=>{const l=String(g[r][0]).trim(), pct=/маржа|риск|рентаб|норматив|достаточн/i.test(l);
-    return `<tr><td>${esc(cap(l))}</td>${names.map((n,i)=>`<td>${fmt(g[r][i+1],pct?"pct":"")}</td>`).join("")}</tr>`}).join("");
-  return `<div class="tbl compact"><table><thead><tr><th>Показатель</th>${names.map(n=>`<th>${esc(n)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+  // направление: больше — лучше (+1) или меньше — лучше (-1)
+  const dir=l=>/риск/i.test(l)?-1:/^[pр]\/[eеbв]/i.test(l)?-1:/маржа|рентаб|roe|норматив|достаточн/i.test(l)?1:0;
+  const body=rows.map(r=>{const l=String(g[r][0]).trim(), pct=/маржа|риск|рентаб|норматив|достаточн/i.test(l), d=dir(l);
+    const vals=names.map((n,i)=>g[r][i+1]), nums=vals.filter(isNum), avg=nums.length?nums.reduce((a,b)=>a+b,0)/nums.length:null;
+    const cls=v=>!d||!isNum(v)||!isNum(avg)?"":(v-avg)*d>avg*0.03?"gd":(avg-v)*d>avg*0.03?"bd":"";
+    return `<tr><td>${esc(cap(l))}</td>${vals.map(v=>`<td class="${cls(v)}">${fmt(v,pct?"pct":"")}</td>`).join("")}</tr>`}).join("");
+  return `<div class="tbl compact"><table><thead><tr><th>Показатель</th>${names.map(n=>`<th>${esc(n)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего по банкам</span><span><i style="background:#FEE2E2"></i>хуже среднего</span><span>для P/E и P/B зелёный — дешевле среднего</span></div>`;
 }
 function multTableBanks(A){
   if(!A) return "";
-  const b=A.rows.filter(r=>!r.avgRow).map(r=>`<tr class="${r.excluded?"off":""}"><td>${esc(r.name)}${r.excluded?'<span class="soon">не в среднем</span>':""}</td><td>${fmt(r.cap)}</td><td>${fmt(r.roe,"pct")}</td><td>${fmt(r.roa,"pct")}</td><td>${fmt(r.pb)}</td><td>${fmt(r.pe)}</td></tr>`).join("");
-  return `<div class="tbl"><table><thead><tr><th>Банк</th><th>Капитализация, млрд ₽</th><th>ROE</th><th>ROA</th><th>P/B</th><th>P/E</th></tr></thead><tbody>${b}
-    <tr class="total"><td>Среднее (без МКБ)</td><td></td><td>${fmt(A.roe,"pct")}</td><td>${fmt(A.roa,"pct")}</td><td>${fmt(A.pb)}</td><td>${fmt(A.pe)}</td></tr></tbody></table></div>`;
+  const c=(v,avg,d,r)=>r.excluded||!isNum(v)||!isNum(avg)?"":(v-avg)*d>Math.abs(avg)*0.03?"gd":(avg-v)*d>Math.abs(avg)*0.03?"bd":"";
+  const b=A.rows.filter(r=>!r.avgRow).map(r=>`<tr class="${r.excluded?"off":""}"><td>${esc(r.name)}${r.excluded?'<span class="soon">не в среднем</span>':""}</td><td>${fmt(r.cap)}</td><td class="${c(r.roe,A.roe,1,r)}">${fmt(r.roe,"pct")}</td><td class="${c(r.roa,A.roa,1,r)}">${fmt(r.roa,"pct")}</td><td class="${c(r.pb,A.pb,-1,r)}">${fmt(r.pb)}</td><td class="${c(r.pe,A.pe,-1,r)}">${fmt(r.pe)}</td></tr>`).join("");
+  return `<div class="tbl compact"><table><thead><tr><th>Банк</th><th>Капитализация, млрд ₽</th><th>ROE</th><th>ROA</th><th>P/B</th><th>P/E</th></tr></thead><tbody>${b}
+    <tr class="total"><td>Среднее (без МКБ)</td><td></td><td>${fmt(A.roe,"pct")}</td><td>${fmt(A.roa,"pct")}</td><td>${fmt(A.pb)}</td><td>${fmt(A.pe)}</td></tr></tbody></table></div>
+    <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего: ROE и ROA выше, P/B и P/E ниже (дешевле)</span><span><i style="background:#FEE2E2"></i>хуже среднего</span></div>`;
 }
 
 /* ---------- РСБУ ---------- */
