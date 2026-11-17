@@ -1,0 +1,90 @@
+{
+ "updated": "2026-11-17T13:08:51+00:00",
+ "sectors": [
+  {
+   "id": "metals",
+   "name": "Металлурги",
+   "active": false
+  },
+  {
+   "id": "banks",
+   "name": "Банковский сектор",
+   "active": true
+  },
+  {
+   "id": "power",
+   "name": "Электрогенерация",
+   "active": false
+  },
+  {
+   "id": "grids",
+   "name": "Сетевые компании",
+   "active": false
+  },
+  {
+   "id": "retail",
+   "name": "Ретейл",
+   "active": false
+  },
+  {
+   "id": "fertilizers",
+   "name": "Удобрения",
+   "active": false
+  },
+  {
+   "id": "it",
+   "name": "IT",
+   "active": false
+  },
+  {
+   "id": "developers",
+   "name": "Застройщики",
+   "active": false
+  },
+  {
+   "id": "consumer",
+   "name": "Потребительский сектор",
+   "active": false
+  },
+  {
+   "id": "oilgas",
+   "name": "Нефтегаз",
+   "active": false
+  },
+  {
+   "id": "transport",
+   "name": "Транспорт",
+   "active": false
+  },
+  {
+   "id": "finance",
+   "name": "Финансы",
+   "active": false
+  },
+  {
+   "id": "gold",
+   "name": "Золотодобыча",
+   "active": false
+  },
+  {
+   "id": "pharma",
+   "name": "Фарма",
+   "active": false
+  },
+  {
+   "id": "medicine",
+   "name": "Медицина",
+   "active": false
+  },
+  {
+   "id": "industry",
+   "name": "Промышленность",
+   "active": false
+  },
+  {
+   "id": "telecom",
+   "name": "Телекомы",
+   "active": false
+  }
+ ]
+}

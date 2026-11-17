@@ -1,0 +1,103 @@
+{
+ "_comment": "Каталог отраслей. Новая отрасль = новая строка: id, name, spreadsheet_id (ID Google-таблицы отрасли), active=true когда раздел готов. Листы: include — какие брать (порядок важен), exclude — какие пропустить.",
+ "sectors": [
+  {
+   "id": "metals",
+   "name": "Металлурги",
+   "active": false,
+   "spreadsheet_id": "1jatjseMnUpOuKK5hU5N9GiErq-otz1woGBGkXpmiGqU",
+   "sheets": {
+    "exclude": "^(Copy of|Копия)|график"
+   }
+  },
+  {
+   "id": "banks",
+   "name": "Банковский сектор",
+   "active": true,
+   "spreadsheet_id": "1oCyxztX-GkqyRE4sZC9d56Fg7Msv0JrmAcxFgLTxcH4",
+   "sheets": {
+    "include": [
+     "средние",
+     "риск",
+     "Сбербанк",
+     "Т-Банк",
+     "Дом РФ",
+     "Совкомбанк",
+     "МТС Банк",
+     "Банк Санкт-Петербург",
+     "ВТБ"
+    ]
+   },
+   "exclude_from_average": [
+    "МКБ"
+   ]
+  },
+  {
+   "id": "power",
+   "name": "Электрогенерация"
+  },
+  {
+   "id": "grids",
+   "name": "Сетевые компании"
+  },
+  {
+   "id": "retail",
+   "name": "Ретейл"
+  },
+  {
+   "id": "fertilizers",
+   "name": "Удобрения"
+  },
+  {
+   "id": "it",
+   "name": "IT"
+  },
+  {
+   "id": "developers",
+   "name": "Застройщики"
+  },
+  {
+   "id": "consumer",
+   "name": "Потребительский сектор"
+  },
+  {
+   "id": "oilgas",
+   "name": "Нефтегаз"
+  },
+  {
+   "id": "transport",
+   "name": "Транспорт"
+  },
+  {
+   "id": "finance",
+   "name": "Финансы"
+  },
+  {
+   "id": "gold",
+   "name": "Золотодобыча"
+  },
+  {
+   "id": "pharma",
+   "name": "Фарма"
+  },
+  {
+   "id": "medicine",
+   "name": "Медицина"
+  },
+  {
+   "id": "industry",
+   "name": "Промышленность"
+  },
+  {
+   "id": "telecom",
+   "name": "Телекомы"
+  }
+ ],
+ "rsbu": {
+  "csv_base": "https://raw.githubusercontent.com/zaletovaea-ui/ip-banks/main/data/"
+ },
+ "clock": {
+  "spreadsheet_id": "1WaxWTTxhYo82lVwOAChQCdfKtO7EAi-8HvypZGdn7gs",
+  "sheet": "Тест"
+ }
+}
