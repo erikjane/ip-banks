@@ -260,7 +260,7 @@ const nf=d=>new Intl.NumberFormat("ru-RU",{minimumFractionDigits:d,maximumFracti
 const isNum=v=>typeof v==="number"&&isFinite(v);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function fmt(v,kind){
-  if(!isNum(v)) return (v===""||v==null)?"—":esc(v);
+  if(!isNum(v)) return (v===""||v==null||/^#(VALUE|DIV|N\/A|REF|NAME|NUM|NULL|ERROR)/i.test(String(v)))?"—":esc(v);
   if(kind==="pct") return nf(1).format(v*100)+"%";
   if(kind==="pp") return nf(1).format(v)+"%";
   const a=Math.abs(v); return nf(a>=1000?0:a>=100?1:2).format(v);

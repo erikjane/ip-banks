@@ -17,6 +17,7 @@ CONFIG = json.loads((HERE / "config.json").read_text(encoding="utf-8"))
 
 
 # ---------- общие утилиты ----------
+ERR_RE = re.compile(r"^#(VALUE!|DIV/0!|N/A|REF!|NAME\?|NUM!|NULL!|ERROR!|SPILL!|CALC!|GETTING_DATA)", re.I)
 def clean_cell(v):
     if v is None:
         return ""
@@ -28,7 +29,7 @@ def clean_cell(v):
         return v.strftime("%d.%m.%Y")
     if isinstance(v, str):
         s = v.strip()
-        if s.startswith("#") and s.endswith(("!", "?", "A")):  # #VALUE!, #DIV/0!, #N/A
+        if ERR_RE.match(s):  # ошибки формул: #VALUE!, #DIV/0!, #N/A, #REF! ... (в т.ч. с пояснением Google в скобках)
             return ""
         return s
     return v
