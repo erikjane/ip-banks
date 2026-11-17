@@ -1,6 +1,6 @@
 import re
 src=open('/home/claude/v2/site/app.html').read()
-css=src[src.index('<style>')+7:src.index('</style>')]
+css=re.sub(r'/\*.*?\*/','',src[src.index('<style>')+7:src.index('</style>')],flags=re.S)
 body_html=src[src.index('<body>')+6:src.index('<script>')]
 js=src[src.index('<script>')+8:src.rindex('</script>')]
 def scope(sel):

@@ -17,12 +17,23 @@ embed='''/* Инвест Привет+ · Инвест-часы и отрасл�
 (function(){
   var root=document.getElementById("ipapp");
   if(!root){ root=document.createElement("div"); root.id="ipapp"; (document.currentScript&&document.currentScript.parentNode||document.body).insertBefore(root, document.currentScript||null); }
-  if(root.dataset.ready) return; root.dataset.ready="1";
+  if(root.dataset.ready) return; root.dataset.ready="1"; root.removeAttribute("data-loading");
   var head=document.head||document.getElementsByTagName("head")[0];
   function link(href){ var l=document.createElement("link"); l.rel="stylesheet"; l.href=href; head.appendChild(l); }
   link("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
   var st=document.createElement("style"); st.textContent=CSS_HERE; head.appendChild(st);
   root.innerHTML=HTML_HERE;
+  // на всю ширину экрана, даже если площадка (GetCourse) ставит блок в узкую колонку.
+  // Отключить: <div id="ipapp" data-full="0"></div>
+  function fit(){
+    if(root.getAttribute("data-full")==="0") return;
+    var vw=document.documentElement.clientWidth;
+    root.style.width="auto"; root.style.maxWidth="none";
+    var left=root.getBoundingClientRect().left;          // левый край колонки площадки — не трогаем (там может быть меню)
+    var w=Math.max(root.parentNode.clientWidth||0, vw-left-16);
+    root.style.width=w+"px";
+  }
+  fit(); window.addEventListener("resize",fit); setTimeout(fit,500); setTimeout(fit,2000);
   // защита от копирования и сохранения (сдерживающая: скриншот и инструменты разработчика не блокируются)
   ["contextmenu","copy","cut","dragstart","selectstart"].forEach(function(ev){
     root.addEventListener(ev,function(e){ var t=e.target; if(t&&(t.tagName==="SELECT"||t.tagName==="INPUT")) return; e.preventDefault(); });
