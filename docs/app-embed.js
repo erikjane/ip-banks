@@ -54,7 +54,7 @@ const EXCLUDE_FROM_AVG = ["МКБ"];
 const SECTORS = {
   telecom:{name:"Телекомы", companies:[
     {id:"rtkm", short:"Ростелеком", sheet:"Ростелеком", ticker:"RTKM", review:""},
-    {id:"mtss", short:"МТС",        sheet:"МТС",        ticker:"MTSS", review:""}]}
+    {id:"mtss", short:"МТС",        sheet:"МТС",        ticker:"MTSS", review:"", divForecast:true}]}
 };
 // Фазы на часах: с какого по какой час, отрасли (id из каталога) — согласовать
 const PHASES = [
@@ -318,14 +318,17 @@ const mval=(p,re)=>{const r=p.mult.find(m=>re.test(norm(m.label))); return r?ltm
 function compSummary(secId,c){
   const g=D.sectors[secId]?.sheets?.[c.sheet]; if(!g) return null;
   const p=parseCompany(g), L=re=>ltm(p,findRow(p,re));
-  const price=L(/^цена акции/i), dps=L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
+  // дивиденд: LTM, либо прогнозный (столбец «Прогноз…»), если для компании так задано
+  const dRow=findRow(p,/^дивиденды на акцию/i), fci=p.cols.findIndex(x=>x.kind==="fc");
+  const dpsFc=c.divForecast&&dRow&&fci>=0&&isNum(dRow.vals[fci])? dRow.vals[fci] : null;
+  const price=L(/^цена акции/i), dps=dpsFc??L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
   const pb=mval(p,/^p\/bv?$/);
   return {p, price, cap, rev:L(/^выручка/i), ebitda:L(/^ebitda/i), np,
     pe:mval(p,/^p\/e$/), evE:mval(p,/^ev\/ebitda$/), debtE:mval(p,/^долг\/ebitda$/), pb,
     pbOk: isNum(pb)&&pb>0&&pb<5,
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
     mE:L(/^рентабельность ebitda/i), mOp:L(/^рентабельность операционной/i), mNet:L(/^рентабельность чистой/i),
-    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, ...avgFinal(p.final,price)};
+    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, dyFc: dpsFc!=null, dps, final:p.final, ...avgFinal(p.final,price)};
 }
 // Итоговая СС небанковских отраслей = среднее двух итоговых значений, апсайд — к текущей цене
 function avgFinal(f,price){
@@ -349,7 +352,7 @@ function renderSector(secId){
   const body=A.rows.map(({c:co,s})=>`<tr class="link" onclick="location.hash='${secId}-${co.id}'"><td>${esc(co.short)} <small style="color:var(--muted)">${co.ticker}</small></td>
     <td>${fmt(s.cap)}</td><td>${fmt(s.rev)}</td><td class="${c(s.mE,A.mE,1)}">${fmt(s.mE,"pct")}</td><td class="${c(s.mNet,A.mNet,1)}">${fmt(s.mNet,"pct")}</td>
     <td class="${c(s.pe,A.pe,-1)}">${fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
-    <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}</td><td>${up(s.up)}</td></tr>`).join("");
+    <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}${s.dyFc?' <small style="color:var(--muted)">(прогноз)</small>':""}</td><td>${up(s.up)}</td></tr>`).join("");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
     <h1>${esc(S.name)}</h1><p class="sub">${A.n} компании в среднем · МСФО · LTM — последние 12 месяцев · суммы в млрд ₽</p>
     <div class="tiles">
@@ -459,7 +462,7 @@ function renderCompany(secId,co){
       <div class="tile"><span>P/E LTM</span><b>${fmt(s.pe)}</b></div>
       <div class="tile"><span>EV/EBITDA LTM</span><b>${fmt(s.evE)}</b></div>
       <div class="tile"><span>Долг/EBITDA LTM</span><b>${fmt(s.debtE)}</b></div>
-      <div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>
+      <div class="tile"><span>${s.dyFc?"Див. доходность (прогноз)":"Див. доходность 12 мес"}</span><b>${fmt(s.dy,"pct")}</b>${s.dyFc?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">дивиденд ${rub(s.dps)}${(()=>{const m=String(p.cols.find(x=>x.kind==="fc")?.label||"").match(/(\d{2,4})/); return m?" за "+(m[1].length===2?"20"+m[1]:m[1])+" г.":""})()}</small>`:""}</div>
       <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     </div>
     <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(co.short)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
