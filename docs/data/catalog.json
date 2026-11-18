@@ -11,6 +11,11 @@
    "active": true
   },
   {
+   "id": "telecom",
+   "name": "Телекомы",
+   "active": true
+  },
+  {
    "id": "power",
    "name": "Электрогенерация",
    "active": false
@@ -79,12 +84,7 @@
    "id": "industry",
    "name": "Промышленность",
    "active": false
-  },
-  {
-   "id": "telecom",
-   "name": "Телекомы",
-   "active": false
   }
  ],
- "updated": "2026-11-18T11:31:35+00:00"
+ "updated": "2026-11-18T12:38:38+00:00"
 }
