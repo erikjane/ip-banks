@@ -33,6 +33,19 @@
    ]
   },
   {
+   "id": "telecom",
+   "name": "Телекомы",
+   "active": true,
+   "spreadsheet_id": "1mD5Y_WQ5i7X18mOzcv8NNTi0fB0Q3BvgRcvfZckVJDA",
+   "sheets": {
+    "include": [
+     "средние (копия)",
+     "Ростелеком",
+     "МТС"
+    ]
+   }
+  },
+  {
    "id": "power",
    "name": "Электрогенерация"
   },
@@ -87,10 +100,6 @@
   {
    "id": "industry",
    "name": "Промышленность"
-  },
-  {
-   "id": "telecom",
-   "name": "Телекомы"
   }
  ],
  "rsbu": {
