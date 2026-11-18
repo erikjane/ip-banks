@@ -385,7 +385,10 @@ function bubble(all, avgX, avgY, o){
     ctx.setLineDash([5,5]); ctx.strokeStyle="#94A3B8"; ctx.lineWidth=1;
     if(isNum(A.evE)){ctx.beginPath();ctx.moveTo(x.getPixelForValue(A.evE),y.top);ctx.lineTo(x.getPixelForValue(A.evE),y.bottom);ctx.stroke();}
     if(isNum(A.debtE)){ctx.beginPath();ctx.moveTo(x.left,y.getPixelForValue(A.debtE));ctx.lineTo(x.right,y.getPixelForValue(A.debtE));ctx.stroke();}
-    ctx.setLineDash([]); ctx.font="600 13px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="center";
+    ctx.setLineDash([]);
+    if(isNum(o.refY)&&o.refY>=y.min&&o.refY<=y.max){ const py=y.getPixelForValue(o.refY); ctx.strokeStyle="#0F2042"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x.left,py); ctx.lineTo(x.right,py); ctx.stroke();
+      ctx.font="700 12px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="right"; ctx.fillText(o.refLabel||"", x.right-6, py-6); }
+    ctx.font="600 13px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="center";
     ch.data.datasets.forEach((d,i)=>{const m=ch.getDatasetMeta(i).data[0]; if(m) ctx.fillText(d.label, m.x, m.y-d.data[0].r-8);});
     ctx.font="500 11px Manrope"; ctx.fillStyle="#64748B"; ctx.textAlign="left";
     if(isNum(A.evE)) ctx.fillText("среднее "+fx(A.evE), x.getPixelForValue(A.evE)+6, y.top+12);
@@ -493,9 +496,9 @@ function renderBanks(view, selBank){
     <h2>Мультипликаторы банков</h2>${multTableBanks(A)}
     <h2>Оценка банков: P/B и ROE (LTM)</h2>
     <div class="card"><div class="chart-wrap" style="height:440px"><canvas id="ipa-bub"></canvas></div>
-      <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по сектору (без МКБ). Правее и ниже — выше рентабельность капитала при более низкой оценке.</p></div>`;
+      <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по сектору (без МКБ). Жирная линия — P/B = 1: ниже неё банк стоит дешевле своего капитала. Правее и ниже — выше рентабельность капитала при более низкой оценке.</p></div>`;
   if(window.Chart&&A){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
-    charts.push(new Chart(document.getElementById("ipa-bub"), bubble(A.rows.filter(r=>!r.avgRow&&!r.excluded).map(r=>({name:r.name,x:r.roe,y:r.pb,cap:r.cap})), A.roe, A.pb, {x:"ROE",y:"P/B",xPct:true,padX:0.02,padY:0.2,step:0.025}))); }
+    charts.push(new Chart(document.getElementById("ipa-bub"), bubble(A.rows.filter(r=>!r.avgRow&&!r.excluded).map(r=>({name:r.name,x:r.roe,y:r.pb,cap:r.cap})), A.roe, A.pb, {x:"ROE",y:"P/B",xPct:true,padX:0.02,padY:0.2,step:0.025,refY:1,refLabel:"P/B = 1"}))); }
 }
 function riskTable(){
   const g=D.sectors.banks?.sheets?.["риск"]; if(!g) return "";
