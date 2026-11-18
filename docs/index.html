@@ -196,7 +196,8 @@ select.inl{font:inherit;font-weight:700;padding:8px 12px;border-radius:10px;bord
 .rsbu thead th{white-space:nowrap;line-height:1.25;vertical-align:bottom;padding:8px 7px;font-size:11.5px}
 .rsbu thead th:first-child{max-width:none}
 .rsbu td{padding:7px 7px}
-.rsbu td:first-child{white-space:nowrap}
+.rsbu td:first-child{white-space:normal;min-width:88px;max-width:104px;width:104px;line-height:1.25;font-size:12.5px}
+.rsbu td:first-child small{display:block;margin-top:1px}
 .rsbu .verdict{min-width:180px;max-width:220px;font-size:12px;line-height:1.35}
 
 /* большие экраны */
@@ -219,7 +220,7 @@ select.inl{font:inherit;font-weight:700;padding:8px 12px;border-radius:10px;bord
 <body>
 <header><div class="bar">
   <a class="logo" href="#home"><i>IP</i>Инвест Привет<b>+</b></a>
-  <nav id="nav"><a href="#home" data-n="home">Инвест-часы</a><a href="#sectors" data-n="sectors">Отрасли</a><a href="#club" data-n="club">Клуб</a></nav>
+  <nav id="nav"><a href="#home" data-n="home">Инвест-часы</a><a href="#sectors" data-n="sectors">Отрасли</a></nav>
   <div class="status" id="status"></div>
 </div></header>
 <main id="app"></main>
@@ -553,6 +554,8 @@ function multTableBanks(A){
 }
 
 /* ---------- РСБУ ---------- */
+const RSBU_NAMES={"Т-Банк":"Т-Технологии","ВБ Банк (Wildberries)":"ВБ Банк"};
+function rsbuName(n){return RSBU_NAMES[n]||n}
 function rsbuCard(r){
   if(!r) return "";
   const n1=v=>isNum(v)?nf(1).format(v):"—", n0=v=>isNum(v)?nf(0).format(v):"—", sg=v=>isNum(v)?(v>0?"+":"")+nf(1).format(v):"—";
@@ -573,7 +576,7 @@ function rsbuCard(r){
     ["Достаточность капитала H1.0", n1(r.h1_0)+"%", r.s_h1,
       isNum(r.h1_0)? (r.h1_0>=12? "Запас капитала комфортный — есть из чего платить дивиденды" : r.h1_0<10? "Запас у самой границы — дивиденды могут урезать" : "Запас капитала умеренный") : ""]
   ];
-  return `<div class="card rcard"><div class="top"><span class="light l-${LIGHT[r.light]||"s"}" style="width:16px;height:16px"></span><b>${esc(r.bank)}</b>
+  return `<div class="card rcard"><div class="top"><span class="light l-${LIGHT[r.light]||"s"}" style="width:16px;height:16px"></span><b>${esc(rsbuName(r.bank))}</b>
       <span class="badge ${r.light==="зелёный"?"up":r.light==="красный"?"down":"na"}">${r.greens} зелёных · ${r.reds} красных</span>
       <div class="vd">${esc(r.verdict)}</div></div>
     <div class="mgrid">${items.map(([t,v,st,txt])=>`<div class="m ${LIGHT[st]||""}"><span>${t}</span><b>${v}</b><p>${esc(txt)}</p></div>`).join("")}</div></div>`;
@@ -583,14 +586,14 @@ function renderRsbu(box, selBank){
   const R=D.rsbu; if(!R){box.innerHTML="<p>Нет данных РСБУ</p>";return}
   const m=new Date(R.month), mLbl=m.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
   const c=(v,s,k)=>`<td class="${s?"c-"+(LIGHT[s]||""):""}">${isNum(v)?(k==="sign"?(v>0?"+":"")+nf(0).format(v):k==="pp"?(v>0?"+":"")+nf(2).format(v):fmt(v)):"—"}</td>`;
-  const rows=R.summary.map(r=>`<tr class="link" onclick="location.hash='banks-rsbu-${encodeURIComponent(r.bank)}'"><td><span class="light l-${LIGHT[r.light]||"s"}"></span>${esc(r.bank)} ${r.ticker?`<small style="color:var(--muted)">${esc(r.ticker)}</small>`:""}</td>
+  const rows=R.summary.map(r=>`<tr class="link" onclick="location.hash='banks-rsbu-${encodeURIComponent(r.bank)}'"><td><span class="light l-${LIGHT[r.light]||"s"}"></span>${esc(rsbuName(r.bank))} ${r.ticker?`<small style="color:var(--muted)">${esc(r.ticker)}</small>`:""}</td>
     <td class="verdict">${esc(r.verdict)}</td>${c(r.profit_ytd,r.s_profit)}${c(r.profit_ytd_yoy_pct,r.s_profit,"sign")}${c(r.roe_ltm,r.s_roe)}${c(r.loans,r.s_loans)}${c(r.loans_yoy_pct,r.s_loans,"sign")}
     ${c(r.overdue_pct,r.s_overdue)}${c(r.overdue_pct_chg_pp,r.s_overdue,"pp")}${c(r.reserve_cover,r.s_cover)}${c(r.dep_retail,r.s_deposits)}${c(r.dep_retail_yoy_pct,r.s_deposits,"sign")}${c(r.h1_0,r.s_h1)}</tr>`).join("");
   const banks=Object.keys(R.monthly.banks), sel=selBank&&banks.includes(selBank)?selBank:banks[0];
   box.innerHTML=`<h2>Здоровье банков по отчётности ЦБ · ${mLbl}</h2>
     <p class="note" style="margin-top:-6px">РСБУ самого банка, без дочерних компаний — цифры отличаются от МСФО группы. Сравнение с тем же месяцем прошлого года. Зелёный — хорошо для акционера, красный — плохо.</p>
     <div class="tbl rsbu"><table><thead><tr><th>Банк</th><th style="text-align:left;max-width:none">Что происходит</th><th>Прибыль с нач.<br>года, млрд ₽</th><th>к прошл.<br>году, %</th><th>ROE<br>12 мес, %</th><th>Кредиты,<br>млрд ₽</th><th>к прошл.<br>году, %</th><th>Просрочка,<br>%</th><th>за год,<br>п.п.</th><th>Резервы к<br>просрочке, %</th><th>Вклады нас.,<br>млрд ₽</th><th>к прошл.<br>году, %</th><th>H1.0,<br>%</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="sec-head"><h2>Банк подробно</h2><select class="inl" id="rsbuSel">${banks.map(b=>`<option${b===sel?" selected":""}>${esc(b)}</option>`).join("")}</select></div>
+    <div class="sec-head"><h2>Банк подробно</h2><select class="inl" id="rsbuSel">${banks.map(b=>`<option value="${esc(b)}"${b===sel?" selected":""}>${esc(rsbuName(b))}</option>`).join("")}</select></div>
     <div id="rsbuMonthly"></div>
     <p class="note">Источник: Банк России, формы 0409101, 0409102, 0409123, 0409135. Обновляется автоматически (GitHub: ip-banks).</p>`;
   const draw=b=>{
@@ -693,7 +696,8 @@ function route(){
   else if(h==="banks") renderBanks("overview");
   else if(h.startsWith("banks-rsbu")) renderBanks("rsbu", h.slice("banks-rsbu-".length)||null);
   else if(h.startsWith("bank-")){ const b=BANKS.find(x=>x.id===h.slice(5)); b?renderBank(b):renderSectors(); }
-  else if(h==="club") document.getElementById("app").innerHTML=`<h1>Клуб Инвест Привет+</h1><p class="sub">Разборы компаний, портфель и обучение.</p>${CLUB_URL?`<a class="btn lime" href="${CLUB_URL}">Перейти в клуб →</a>`:'<p class="note">Ссылка на клуб появится здесь.</p>'}`;
+  else if(h==="club") location.hash="home";
+  else if(false) document.getElementById("app").innerHTML=`<h1>Клуб Инвест Привет+</h1><p class="sub">Разборы компаний, портфель и обучение.</p>${CLUB_URL?`<a class="btn lime" href="${CLUB_URL}">Перейти в клуб →</a>`:'<p class="note">Ссылка на клуб появится здесь.</p>'}`;
   else renderSectors();
   window.scrollTo(0,0);
 }
