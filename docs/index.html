@@ -660,6 +660,7 @@ function bubble(all, avgX, avgY, o){
 }
 const COMP_CHARTS=[
   {id:"fin",t:"Выручка, EBITDA и чистая прибыль, млрд ₽"},
+  {id:"cash",t:"Денежные потоки, прибыль и дивиденды, млрд ₽"},
   {id:"mrg",t:"Рентабельность: EBITDA, операционная, чистая"},
   {id:"debt",t:"Чистый долг, млрд ₽ и Долг/EBITDA"},
   {id:"fcf",t:"FCF и дивиденды, млрд ₽"},
@@ -675,6 +676,10 @@ function compChart(p,kind){
   if(kind==="fin") return base("bar",[bar("Выручка",ser(/^выручка/i),0),bar("EBITDA",ser(/^ebitda/i),1),bar("Чистая прибыль",ser(/^чистая прибыль/i),2)]);
   if(kind==="mrg") return base("line",[line("EBITDA",ser(/^рентабельность ebitda/i),0),line("Операционная",ser(/^рентабельность операционной/i),1),line("Чистая",ser(/^рентабельность чистой/i),2)],true);
   if(kind==="debt") return base("bar",[bar("Чистый долг",ser(/^чистый долг/i),0),line("Долг/EBITDA",mser(/^долг\/ebitda$/),1,"y1")],false,true);
+  if(kind==="cash"){ const neg=a=>a.map(v=>isNum(v)?-Math.abs(v):null), cb=(l,d,c)=>({label:l,data:d,backgroundColor:c,borderRadius:3,maxBarThickness:22});
+    const cfg=base("bar",[cb("Операционный денежный поток",ser(/^операционный денежный поток/i),"#F2B33D"),cb("Свободный денежный поток (FCF)",ser(/^fcf/i),"#1F5CFF"),
+      cb("Чистая прибыль",ser(/^чистая прибыль/i),"#15803D"),cb("Выплаченные дивиденды",neg(ser(/^дивиденды всего/i)),"#7C3AED")]);
+    cfg.options.scales.y.grid={color:c=>c.tick.value===0?"#0F2042":"#E2E8F0"}; return cfg; }
   if(kind==="fcf") return base("bar",[bar("FCF",ser(/^fcf/i),0),bar("Дивиденды",ser(/^дивиденды всего/i),1)]);
   return base("line",[line("P/E",mser(/^p\/e$/),0),line("EV/EBITDA",mser(/^ev\/ebitda$/),1)]);
 }
