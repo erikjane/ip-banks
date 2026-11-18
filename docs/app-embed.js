@@ -325,7 +325,12 @@ function compSummary(secId,c){
     pbOk: isNum(pb)&&pb>0&&pb<5,
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
     mE:L(/^рентабельность ebitda/i), mOp:L(/^рентабельность операционной/i), mNet:L(/^рентабельность чистой/i),
-    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, up:finalUp(p.final)};
+    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, ...avgFinal(p.final,price)};
+}
+// Итоговая СС небанковских отраслей = среднее двух итоговых значений, апсайд — к текущей цене
+function avgFinal(f,price){
+  const v=f?f.values.filter(x=>isNum(x)&&x>0):[]; if(!v.length) return {fair:null,up:null};
+  const fair=v.reduce((a,b)=>a+b,0)/v.length; return {fair, up: isNum(price)&&price>0? fair/price-1 : null};
 }
 function secAverages(secId){
   const S=SECTORS[secId]; if(!S||!D.sectors[secId]) return null;
@@ -402,7 +407,7 @@ function renderCompany(secId,co){
     <div class="charts">${[0,1].map(k=>`<div class="card"><select class="csel" id="ipa-sel${k}">${COMP_CHARTS.map(c=>`<option value="${c.id}"${c.id===(k?"mrg":"fin")?" selected":""}>${c.t}</option>`).join("")}</select><div class="chart-wrap"><canvas id="ipa-c${k}"></canvas></div></div>`).join("")}</div>
     <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="ipa-tg"><button data-m="year" class="on">Годы</button><button data-m="q">Кварталы</button><button data-m="all">Все</button></div></div>
     <div id="ipa-fin"></div><h2>Мультипликаторы</h2><div id="ipa-mult"></div>
-    <h2>Мультипликаторный прогноз</h2>${fcHTML(p,s.price)}`;
+    <h2>Мультипликаторный прогноз</h2>${fcHTML(p,s.price,s)}`;
   const draw=()=>{document.getElementById("ipa-fin").innerHTML=tableHTML(p,mode);document.getElementById("ipa-mult").innerHTML=multHTML(p,mode)}; draw();
   document.getElementById("ipa-tg").onclick=e=>{const x=e.target.closest("button"); if(!x) return; mode=x.dataset.m; [...e.currentTarget.children].forEach(y=>y.classList.toggle("on",y===x)); draw();};
   if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
@@ -549,7 +554,7 @@ function multHTML(p,mode){
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>серым — отрицательный (убыток), не сравнивается</span></div>`;
 }
-function fcHTML(p,price){
+function fcHTML(p,price,avg){
   if(!p.fc.length) return `<p class="note">На листе нет блока «Мультипликаторный прогноз».</p>`;
   const nm={"p/e":"По P/E (цена / прибыль)","ev/ebitda":"По EV/EBITDA","p/b":"По P/B (цена / капитал)"};
   const cards=p.fc.map(b=>{const cnt={};
@@ -560,7 +565,8 @@ function fcHTML(p,price){
       return `<tr><td>${esc(l)}</td><td>${cell(r.v1)}</td><td>${cell(r.v2)}</td></tr>`}).join("");
     return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th><th>${esc(b.h2)}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
-  const fin=f?`<div class="final">${f.labels.map((l,i)=>`<div class="big"><span class="lbl">Итоговая справедливая стоимость · ${esc(l)}</span><b>${isNum(f.values[i])&&f.values[i]>0?rub(f.values[i]):"н/д"}</b>${pctBadge(f.upside[i])}</div>`).join("")}<div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`:"";
+  const fin=f&&avg&&isNum(avg.fair)?`<div class="final"><div class="big"><span class="lbl">Итоговая справедливая стоимость · среднее ${f.labels.map((l,i)=>isNum(f.values[i])&&f.values[i]>0?`${esc(l)}: ${rub(f.values[i])}`:"").filter(Boolean).join(" и ")}</span><b>${rub(avg.fair)}</b>${pctBadge(avg.up)}</div><div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`
+    : f?`<div class="final">${f.labels.map((l,i)=>`<div class="big"><span class="lbl">Итоговая справедливая стоимость · ${esc(l)}</span><b>${isNum(f.values[i])&&f.values[i]>0?rub(f.values[i]):"н/д"}</b>${pctBadge(f.upside[i])}</div>`).join("")}<div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`:"";
   return `<div class="fc">${cards}</div>${fin}`;
 }
 const BANK_CHARTS=[
