@@ -50,6 +50,12 @@ const BANKS = [
   {short:"ВТБ",        sheet:"ВТБ",                  id:"vtb",   ticker:"VTBR",  rsbu:"ВТБ",                 review:""}
 ];
 const EXCLUDE_FROM_AVG = ["МКБ"];
+// Небанковские отрасли: какие листы — какие компании (ticker для подписи, review — ссылка на разбор в клубе)
+const SECTORS = {
+  telecom:{name:"Телекомы", companies:[
+    {id:"rtkm", short:"Ростелеком", sheet:"Ростелеком", ticker:"RTKM", review:""},
+    {id:"mtss", short:"МТС",        sheet:"МТС",        ticker:"MTSS", review:""}]}
+};
 // Фазы на часах: с какого по какой час, отрасли (id из каталога) — согласовать
 const PHASES = [
   {id:"peak",     name:"Бум / Пик",      from:9,  to:12, sectors:["metals","oilgas","fertilizers","industry","transport"]},
@@ -219,6 +225,7 @@ function parseCompany(grid){
   const head=grid[0]||[], cols=[];
   for(let c=2;c<head.length;c++){
     const h=head[c]; if(h===""||h==null){ if(cols.length) break; else continue; }
+    if(/коммент/i.test(String(h))) break;
     const label=isNum(h)?String(Math.round(h)):String(h).trim();
     const kind=/^\d{4}$/.test(label)?"year":/^ltm$/i.test(label)?"ltm":(/прогноз|п$|^п\d{4}/i.test(label))?"fc":"q";
     cols.push({c,label,kind});
@@ -246,9 +253,10 @@ function parseCompany(grid){
   const fc=[]; let final=null;
   for(let r=fcRow+1;r<grid.length;r++){
     const row=grid[r]||[], l=norm(row[0]);
-    if(["p/e","ev/ebitda","p/b"].includes(l) && typeof row[1]==="string" && row[1].trim()){
+    if(["p/e","ev/ebitda","p/b"].includes(l) && ((typeof row[1]==="string" && row[1].trim())||(typeof row[2]==="string" && row[2].trim()))){
       const blk={method:String(row[0]).trim(),h1:String(row[1]).trim(),h2:String(row[2]??"").trim(),rows:[]};
-      for(let k=r+1;k<grid.length&&L(k);k++) blk.rows.push({label:L(k),v1:grid[k][1],v2:grid[k][2]});
+      const isHead=k=>["p/e","ev/ebitda","p/b"].includes(norm((grid[k]||[])[0]));
+      for(let k=r+1;k<grid.length;k++){ if(!L(k)){ const nx=grid[k+1]||[]; if(L(k+1)&&!isHead(k+1)&&(isNum(nx[1])||isNum(nx[2]))) continue; break; } if(/^комментари/i.test(L(k))) break; if(isHead(k)) break; blk.rows.push({label:L(k),v1:grid[k][1],v2:grid[k][2]}); }
       fc.push(blk);
     }
   }
@@ -258,7 +266,8 @@ function parseCompany(grid){
     for(let r=fcRow+1;r<grid.length;r++){
       const row=grid[r]||[], ca=row.findIndex((v,i)=>i>=3&&norm(v)===norm("апсайд"));
       if(ca>=0&&isNum(row[ca+1])){
-        const vr=grid[r-1]||[], hr=it?grid[it.r+1]||[]:grid[r-2]||[], hc=it?it.c:ca+1;
+        const vr=grid[r-1]||[], isLbl=x=>typeof x==="string"&&x.trim()!==""; let hr=it?grid[it.r+1]||[]:grid[r-2]||[], hc=it?it.c:ca+1;
+        if(!it&&!isLbl(hr[hc])&&isLbl((grid[r+1]||[])[hc])) hr=grid[r+1];
         final={labels:[hr[hc],hr[hc+1]].map(x=>String(x??"").trim()),values:[vr[ca+1],vr[ca+2]],upside:[row[ca+1],row[ca+2]]};
         break;
       }
@@ -304,11 +313,113 @@ function bankAverages(){
   return {rows, n:use.length, pe:avg("pe"), pb:avg("pb"), roe:avg("roe"), roa:avg("roa"), dy:dys.length?dys.reduce((a,b)=>a+b,0)/dys.length:null};
 }
 
+/* ---------- небанковские отрасли ---------- */
+const mval=(p,re)=>{const r=p.mult.find(m=>re.test(norm(m.label))); return r?ltm(p,r):null;};
+function compSummary(secId,c){
+  const g=D.sectors[secId]?.sheets?.[c.sheet]; if(!g) return null;
+  const p=parseCompany(g), L=re=>ltm(p,findRow(p,re));
+  const price=L(/^цена акции/i), dps=L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
+  const pb=mval(p,/^p\/bv?$/);
+  return {p, price, cap, rev:L(/^выручка/i), ebitda:L(/^ebitda/i), np,
+    pe:mval(p,/^p\/e$/), evE:mval(p,/^ev\/ebitda$/), debtE:mval(p,/^долг\/ebitda$/), pb,
+    pbOk: isNum(pb)&&pb>0&&pb<5,
+    roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
+    mE:L(/^рентабельность ebitda/i), mOp:L(/^рентабельность операционной/i), mNet:L(/^рентабельность чистой/i),
+    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, up:finalUp(p.final)};
+}
+function secAverages(secId){
+  const S=SECTORS[secId]; if(!S||!D.sectors[secId]) return null;
+  const rows=S.companies.map(c=>({c, s:compSummary(secId,c)})).filter(x=>x.s);
+  const avg=(k,ok)=>{const v=rows.filter(x=>!ok||x.s[ok]).map(x=>x.s[k]).filter(isNum); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null;};
+  return {rows, n:rows.length, pe:avg("pe"), evE:avg("evE"), debtE:avg("debtE"), pb:avg("pb","pbOk"), roe:avg("roe"),
+    mE:avg("mE"), mOp:avg("mOp"), mNet:avg("mNet"), dy:avg("dy"), up:avg("up"),
+    pbOut:rows.filter(x=>isNum(x.s.pb)&&!x.s.pbOk).map(x=>x.c.short)};
+}
+function renderSector(secId){
+  const S=SECTORS[secId], A=secAverages(secId), app=document.getElementById("ipa-app");
+  if(!A||!A.n){ app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div><h1>${esc(S.name)}</h1><p class="note">Данные загружаются из Google-таблицы — обновите страницу через несколько минут.</p>`; return; }
+  const btns=A.rows.map(x=>`<a class="btn" href="#${secId}-${x.c.id}">${esc(x.c.short)} <small>${x.c.ticker}</small></a>`).join("");
+  const c=(v,avg,d)=>!isNum(v)||!isNum(avg)?"":(v-avg)*d>Math.abs(avg)*0.03?"gd":(avg-v)*d>Math.abs(avg)*0.03?"bd":"";
+  const up=v=>isNum(v)&&v>-0.999?pctBadge(v):"—";
+  const body=A.rows.map(({c:co,s})=>`<tr class="link" onclick="location.hash='${secId}-${co.id}'"><td>${esc(co.short)} <small style="color:var(--muted)">${co.ticker}</small></td>
+    <td>${fmt(s.cap)}</td><td>${fmt(s.rev)}</td><td class="${c(s.mE,A.mE,1)}">${fmt(s.mE,"pct")}</td><td class="${c(s.mNet,A.mNet,1)}">${fmt(s.mNet,"pct")}</td>
+    <td class="${c(s.pe,A.pe,-1)}">${fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
+    <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}</td><td>${up(s.up)}</td></tr>`).join("");
+  app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
+    <h1>${esc(S.name)}</h1><p class="sub">${A.n} компании в среднем · МСФО · LTM — последние 12 месяцев · суммы в млрд ₽</p>
+    <div class="tiles">
+      <div class="tile"><span>Средний P/E</span><b>${fmt(A.pe)}</b></div>
+      <div class="tile"><span>Средний EV/EBITDA</span><b>${fmt(A.evE)}</b></div>
+      <div class="tile"><span>Средний Долг/EBITDA</span><b>${fmt(A.debtE)}</b></div>
+      <div class="tile"><span>Рентабельность EBITDA</span><b>${fmt(A.mE,"pct")}</b></div>
+      <div class="tile"><span>Средняя див. доходность</span><b>${fmt(A.dy,"pct")}</b></div>
+    </div>
+    <h2>Компании</h2><div class="bankbtns">${btns}</div>
+    <h2>Сравнение компаний</h2>
+    <div class="tbl compact wrapth"><table><thead><tr><th>Компания</th><th>Капитализация, млрд ₽</th><th>Выручка LTM, млрд ₽</th><th>Рентаб. EBITDA</th><th>Чистая рентаб.</th><th>P/E</th><th>EV/EBITDA</th><th>Долг/EBITDA</th><th>Див. доходность</th><th>Апсайд к справедливой</th></tr></thead><tbody>${body}
+      <tr class="total"><td>Среднее</td><td></td><td></td><td>${fmt(A.mE,"pct")}</td><td>${fmt(A.mNet,"pct")}</td><td>${fmt(A.pe)}</td><td>${fmt(A.evE)}</td><td>${fmt(A.debtE)}</td><td>${fmt(A.dy,"pct")}</td><td></td></tr></tbody></table></div>
+    <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего: рентабельность и дивиденды выше, мультипликаторы и долг ниже</span><span><i style="background:#FEE2E2"></i>хуже среднего</span></div>`;
+}
+const COMP_CHARTS=[
+  {id:"fin",t:"Выручка, EBITDA и чистая прибыль, млрд ₽"},
+  {id:"mrg",t:"Рентабельность: EBITDA, операционная, чистая"},
+  {id:"debt",t:"Чистый долг, млрд ₽ и Долг/EBITDA"},
+  {id:"fcf",t:"FCF и дивиденды, млрд ₽"},
+  {id:"mult",t:"P/E и EV/EBITDA"}];
+function compChart(p,kind){
+  const yi=p.cols.map((c,i)=>i).filter(i=>p.cols[i].kind==="year"||p.cols[i].kind==="ltm"), labels=yi.map(i=>p.cols[i].label);
+  const ser=re=>{const r=findRow(p,re); return yi.map(i=>r&&isNum(r.vals[i])?r.vals[i]:null)};
+  const mser=re=>{const r=p.mult.find(m=>re.test(norm(m.label))); return yi.map(i=>r&&isNum(r.vals[i])&&Math.abs(r.vals[i])<60?r.vals[i]:null)};
+  const grid={color:"#E2E8F0"}, legend={position:"bottom",labels:{boxWidth:12}}, pctT={callback:v=>nf(0).format(v*100)+"%"};
+  const bar=(l,d,i)=>({label:l,data:d,backgroundColor:PAL[i],borderRadius:4}), line=(l,d,i,ax)=>({type:"line",label:l,data:d,borderColor:PAL[i],backgroundColor:PAL[i],tension:.3,spanGaps:true,pointRadius:3,yAxisID:ax||"y"});
+  const base=(type,ds,pct,y1)=>({type,data:{labels,datasets:ds},options:{maintainAspectRatio:false,plugins:{legend,tooltip:pct?{callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y,"pct")}}:{}},
+    scales:Object.assign({x:{grid:{display:false}},y:{grid,ticks:pct?pctT:{}}}, y1?{y1:{position:"right",grid:{display:false}}}:{})}});
+  if(kind==="fin") return base("bar",[bar("Выручка",ser(/^выручка/i),0),bar("EBITDA",ser(/^ebitda/i),1),bar("Чистая прибыль",ser(/^чистая прибыль/i),2)]);
+  if(kind==="mrg") return base("line",[line("EBITDA",ser(/^рентабельность ebitda/i),0),line("Операционная",ser(/^рентабельность операционной/i),1),line("Чистая",ser(/^рентабельность чистой/i),2)],true);
+  if(kind==="debt") return base("bar",[bar("Чистый долг",ser(/^чистый долг/i),0),line("Долг/EBITDA",mser(/^долг\/ebitda$/),1,"y1")],false,true);
+  if(kind==="fcf") return base("bar",[bar("FCF",ser(/^fcf/i),0),bar("Дивиденды",ser(/^дивиденды всего/i),1)]);
+  return base("line",[line("P/E",mser(/^p\/e$/),0),line("EV/EBITDA",mser(/^ev\/ebitda$/),1)]);
+}
+function renderCompany(secId,co){
+  const S=SECTORS[secId], s=compSummary(secId,co), app=document.getElementById("ipa-app");
+  if(!s){app.innerHTML=`<p>Лист «${esc(co.sheet)}» не найден.</p>`;return}
+  const p=s.p, club=co.review||CLUB_URL||"#"; let mode="year";
+  app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#${secId}">${esc(S.name)}</a> / ${esc(co.short)}</div>
+    <h1>${esc(co.short)} <span class="go" style="font-size:14px;vertical-align:middle">${co.ticker}</span></h1>
+    <p class="sub">МСФО · суммы в млрд ₽ · LTM — последние 12 месяцев</p>
+    <div class="bankbtns" style="margin-bottom:6px">${S.companies.map(x=>`<a class="btn" style="${x===co?"border-color:#1F5CFF;background:#F1F5FF":""}" href="#${secId}-${x.id}">${esc(x.short)}</a>`).join("")}</div>
+    <div class="tiles">
+      <div class="tile"><span>Цена акции (ао)</span><b>${rub(s.price)}</b></div>
+      <div class="tile"><span>Капитализация, млрд</span><b>${fmt(s.cap)}</b></div>
+      <div class="tile"><span>P/E LTM</span><b>${fmt(s.pe)}</b></div>
+      <div class="tile"><span>EV/EBITDA LTM</span><b>${fmt(s.evE)}</b></div>
+      <div class="tile"><span>Долг/EBITDA LTM</span><b>${fmt(s.debtE)}</b></div>
+      <div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>
+      <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
+    </div>
+    <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(co.short)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
+    <h2>Динамика</h2>
+    <div class="charts">${[0,1].map(k=>`<div class="card"><select class="csel" id="ipa-sel${k}">${COMP_CHARTS.map(c=>`<option value="${c.id}"${c.id===(k?"mrg":"fin")?" selected":""}>${c.t}</option>`).join("")}</select><div class="chart-wrap"><canvas id="ipa-c${k}"></canvas></div></div>`).join("")}</div>
+    <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="ipa-tg"><button data-m="year" class="on">Годы</button><button data-m="q">Кварталы</button><button data-m="all">Все</button></div></div>
+    <div id="ipa-fin"></div><h2>Мультипликаторы</h2><div id="ipa-mult"></div>
+    <h2>Мультипликаторный прогноз</h2>${fcHTML(p,s.price)}`;
+  const draw=()=>{document.getElementById("ipa-fin").innerHTML=tableHTML(p,mode);document.getElementById("ipa-mult").innerHTML=multHTML(p,mode)}; draw();
+  document.getElementById("ipa-tg").onclick=e=>{const x=e.target.closest("button"); if(!x) return; mode=x.dataset.m; [...e.currentTarget.children].forEach(y=>y.classList.toggle("on",y===x)); draw();};
+  if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
+    [0,1].forEach(k=>{const sel=document.getElementById("ipa-sel"+k); let ch=null; const go=()=>{if(ch){ch.destroy();charts.splice(charts.indexOf(ch),1)} ch=new Chart(document.getElementById("ipa-c"+k),compChart(p,sel.value)); charts.push(ch)}; sel.onchange=go; go();}); }
+}
+
 /* ---------- страница «Отрасли» ---------- */
 function renderSectors(){
   const A=bankAverages();
   const rows=(D.catalog?.sectors||[]).map(s=>{
-    const a = s.id==="banks"? A : null, on=s.active;
+    const on=s.active&&(s.id==="banks"||SECTORS[s.id]);
+    if(s.id!=="banks"&&SECTORS[s.id]){ const T=on?secAverages(s.id):null, w=(x,k)=>T&&isNum(x)?fmt(x,k):"—";
+      return `<tr class="${on?"link":"off"}" ${on?`onclick="location.hash='${s.id}'"`:""}>
+      <td>${esc(s.name)}${on?'<span class="go">открыть</span>':'<span class="soon">скоро</span>'}</td>
+      <td>${T?T.n:"—"}</td><td>${w(T?.pe)}</td><td>${w(T?.pb)}</td><td>${w(T?.debtE)}</td><td>${w(T?.roe,"pct")}</td>
+      <td>${w(T?.mOp,"pct")}</td><td>${w(T?.mNet,"pct")}</td><td>${w(T?.dy,"pct")}</td></tr>`; }
+    const a = s.id==="banks"? A : null;
     const na=`<span title="Для банков не применимо: у банков нет EBITDA и выручки в привычном смысле">н/п</span>`;
     const v=(x,k)=>a? (x===null? na : fmt(x,k)) : "—";
     return `<tr class="${on?"link":"off"}" ${on?`onclick="location.hash='${s.id}'"`:""}>
@@ -318,7 +429,7 @@ function renderSectors(){
   document.getElementById("ipa-app").innerHTML=`<div class="crumbs">Отрасли</div><h1>Отрасли</h1>
     <p class="sub">Средние показатели по отраслям российского рынка. Нажмите на активную отрасль, чтобы открыть компании.</p>
     <div class="tbl wrapth"><table><thead><tr><th>Отрасль</th><th>Компаний в среднем</th><th>P/E</th><th>P/B</th><th>Долг/EBITDA</th><th>ROE</th><th>Опер. рентабельность</th><th>Чистая рентабельность</th><th>Средняя див. доходность</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="note">Банки: среднее по ${A?A.n:"—"} банкам без МКБ. Дивидендная доходность — дивиденды за 12 мес. на обыкновенную акцию к текущей цене. н/п — не применимо для банков.</p>`;
+    <p class="note">Банки: среднее по ${A?A.n:"—"} банкам без МКБ. Дивидендная доходность — дивиденды за 12 мес. на обыкновенную акцию к текущей цене. н/п — не применимо для банков.${(()=>{const T=D.sectors.telecom?secAverages("telecom"):null; return T&&T.pbOut.length?` Телекомы: ${T.pbOut.join(", ")} не участвует в среднем P/B и ROE — собственный капитал близок к нулю.`:""})()}</p>`;
 }
 
 /* ---------- банковский сектор ---------- */
@@ -513,6 +624,8 @@ function route(){
   else if(h==="banks") renderBanks("overview");
   else if(h.startsWith("banks-rsbu")) renderBanks("rsbu", h.slice("banks-rsbu-".length)||null);
   else if(h.startsWith("bank-")){ const b=BANKS.find(x=>x.id===h.slice(5)); b?renderBank(b):renderSectors(); }
+  else if(SECTORS[h]) renderSector(h);
+  else if(SECTORS[h.split("-")[0]]){ const sid=h.split("-")[0], co=SECTORS[sid].companies.find(x=>x.id===h.slice(sid.length+1)); co?renderCompany(sid,co):renderSector(sid); }
   else if(h==="club") location.hash="home";
   else if(false) document.getElementById("ipa-app").innerHTML=`<h1>Клуб Инвест Привет+</h1><p class="sub">Разборы компаний, портфель и обучение.</p>${CLUB_URL?`<a class="btn lime" href="${CLUB_URL}">Перейти в клуб →</a>`:'<p class="note">Ссылка на клуб появится здесь.</p>'}`;
   else renderSectors();
@@ -528,6 +641,8 @@ async function load(){
   else{
     const [catalog,banks,rsbu,clock,test]=await Promise.all([getJSON("catalog.json"),getJSON("sectors/banks.json"),getJSON("rsbu.json"),getJSON("clock.json"),getJSON("test.json")]);
     renameCells(banks); D={catalog,sectors:{banks},rsbu,clock,test};
+    const extra=(catalog?.sectors||[]).filter(x=>x.active&&SECTORS[x.id]);
+    (await Promise.all(extra.map(x=>getJSON("sectors/"+x.id+".json")))).forEach((j,i)=>{ if(j) D.sectors[extra[i].id]=j; });
   }
   const u=D.catalog?.updated? new Date(D.catalog.updated).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
   document.getElementById("ipa-status").textContent=u? "данные обновлены "+u : "";
