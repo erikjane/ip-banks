@@ -234,7 +234,7 @@ const CLUB_URL = "";                            // ссылка на клуб (�
 // Кнопки банков (порядок — как во вкладке «риск»). sheet — лист в таблице «Банковский сектор», rsbu — имя в РСБУ.
 const BANKS = [
   {short:"Сбер",       sheet:"Сбербанк",             id:"sber",  ticker:"SBER",  rsbu:"Сбербанк",            review:""},
-  {short:"Т-банк",     sheet:"Т-Банк",               id:"tbank", ticker:"T",     rsbu:"Т-Банк",              review:""},
+  {short:"Т-Технологии", name:"Т-Технологии", sheet:"Т-Банк",               id:"tbank", ticker:"T",     rsbu:"Т-Банк",              review:""},
   {short:"Дом рф",     sheet:"Дом РФ",               id:"domrf", ticker:"DOMRF", rsbu:"Банк ДОМ.РФ",         review:""},
   {short:"Совкомбанк", sheet:"Совкомбанк",           id:"svcb",  ticker:"SVCB",  rsbu:"Совкомбанк",          review:""},
   {short:"МТС банк",   sheet:"МТС Банк",             id:"mbnk",  ticker:"MBNK",  rsbu:"МТС-Банк",            review:""},
@@ -556,6 +556,8 @@ function multTableBanks(A){
 /* ---------- РСБУ ---------- */
 const RSBU_NAMES={"Т-Банк":"Т-Технологии","ВБ Банк (Wildberries)":"ВБ Банк"};
 function rsbuName(n){return RSBU_NAMES[n]||n}
+// Отображаемые имена в таблицах (ключи листов не трогаем)
+function renameCells(sec){ if(!sec||!sec.sheets) return; for(const k in sec.sheets){ for(const row of sec.sheets[k]||[]) if(Array.isArray(row)) for(let i=0;i<row.length;i++) if(typeof row[i]==="string"&&/^\s*Т-?\s?[Бб]анк\s*$/.test(row[i])) row[i]="Т-Технологии"; } }
 function rsbuCard(r){
   if(!r) return "";
   const n1=v=>isNum(v)?nf(1).format(v):"—", n0=v=>isNum(v)?nf(0).format(v):"—", sg=v=>isNum(v)?(v>0?"+":"")+nf(1).format(v):"—";
@@ -661,8 +663,8 @@ function renderBank(b){
   const s=bankSummary(b), app=document.getElementById("app");
   if(!s){app.innerHTML=`<p>Лист «${esc(b.sheet)}» не найден.</p>`;return}
   const p=s.p, club=b.review||CLUB_URL||"#"; let mode="year";
-  app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#banks">Банковский сектор</a> / ${esc(b.sheet)}</div>
-    <h1>${esc(b.sheet)} <span class="go" style="font-size:14px;vertical-align:middle">${b.ticker}</span></h1>
+  app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#banks">Банковский сектор</a> / ${esc(b.name||b.sheet)}</div>
+    <h1>${esc(b.name||b.sheet)} <span class="go" style="font-size:14px;vertical-align:middle">${b.ticker}</span></h1>
     <p class="sub">МСФО · суммы в млрд ₽ · LTM — последние 12 месяцев · <a href="#banks-rsbu-${encodeURIComponent(b.rsbu)}">ежемесячное РСБУ →</a></p>
     <div class="bankbtns" style="margin-bottom:6px">${BANKS.map(x=>`<a class="btn" style="${x===b?"border-color:#1F5CFF;background:#F1F5FF":""}" href="#bank-${x.id}">${esc(x.short)}</a>`).join("")}</div>
     <div class="tiles">
@@ -674,7 +676,7 @@ function renderBank(b){
       <div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>
       <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     </div>
-    <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(b.sheet)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
+    <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(b.name||b.sheet)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     <h2>Динамика</h2>
     <div class="charts">${[0,1].map(k=>`<div class="card"><select class="csel" id="sel${k}">${BANK_CHARTS.map(c=>`<option value="${c.id}"${c.id===(k?"roe":"inc")?" selected":""}>${c.t}</option>`).join("")}</select><div class="chart-wrap"><canvas id="c${k}"></canvas></div></div>`).join("")}</div>
     <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="tg"><button data-m="year" class="on">Годы</button><button data-m="q">Кварталы</button><button data-m="all">Все</button></div></div>
@@ -707,10 +709,10 @@ async function getJSON(name){
   return null;
 }
 async function load(){
-  if(EMBED){ D=EMBED; }
+  if(EMBED){ D=EMBED; renameCells(D.sectors&&D.sectors.banks); }
   else{
     const [catalog,banks,rsbu,clock,test]=await Promise.all([getJSON("catalog.json"),getJSON("sectors/banks.json"),getJSON("rsbu.json"),getJSON("clock.json"),getJSON("test.json")]);
-    D={catalog,sectors:{banks},rsbu,clock,test};
+    renameCells(banks); D={catalog,sectors:{banks},rsbu,clock,test};
   }
   const u=D.catalog?.updated? new Date(D.catalog.updated).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
   document.getElementById("status").textContent=u? "данные обновлены "+u : "";
