@@ -268,7 +268,7 @@ const BANKS = [
   {short:"Совкомбанк", sheet:"Совкомбанк",           id:"svcb",  ticker:"SVCB",  rsbu:"Совкомбанк",          review:""},
   {short:"МТС банк",   sheet:"МТС Банк",             id:"mbnk",  ticker:"MBNK",  rsbu:"МТС-Банк",            review:""},
   {short:"БСП",        sheet:"Банк Санкт-Петербург", id:"bspb",  ticker:"BSPB",  rsbu:"Банк Санкт-Петербург",review:""},
-  {short:"ВТБ",        sheet:"ВТБ",                  id:"vtb",   ticker:"VTBR",  rsbu:"ВТБ",                 review:""}
+  {divForecast:true, short:"ВТБ",        sheet:"ВТБ",                  id:"vtb",   ticker:"VTBR",  rsbu:"ВТБ",                 review:""}
 ];
 const EXCLUDE_FROM_AVG = ["МКБ"];
 // Небанковские отрасли: какие листы — какие компании (ticker для подписи, review — ссылка на разбор в клубе)
@@ -508,6 +508,15 @@ const ltmIdx=p=>p.cols.findIndex(c=>c.kind==="ltm");
 const ltm=(p,row)=>{const i=ltmIdx(p); return row&&i>=0?row.vals[i]:null;};
 const multRow=(p,re)=>p.mult.find(m=>re.test(norm(m.label)));
 const multLtm=(p,re)=>{const r=multRow(p,re); return r?ltm(p,r):null;};
+// прогнозная див. доходность: строка «Див доходность» в последнем прогнозном столбце (2026п / Прогноз…)
+function bankDivFc(b,p,price){
+  if(!b.divForecast) return {};
+  let ci=-1; p.cols.forEach((c,i)=>{ if(c.kind==="fc"||/\dп$|прогноз/i.test(String(c.label).trim())) ci=i; }); if(ci<0) return {};
+  const yr=findRow(p,/^див\.?\s*доходность/i), dr=findRow(p,/^дивиденды на акцию/i);
+  let v=yr&&isNum(yr.vals[ci])?yr.vals[ci]:null; const dps=dr&&isNum(dr.vals[ci])?dr.vals[ci]:null;
+  if(v==null&&isNum(dps)&&isNum(price)&&price>0) v=dps/price;
+  return v==null?{}:{dyFc:v, dpsFc:dps, fcLabel:String(p.cols[ci].label)};
+}
 function finalUp(f){ if(!f) return null; for(let i=f.values.length-1;i>=0;i--) if(isNum(f.values[i])&&f.values[i]>0) return f.upside[i]; return null; }
 
 function bankSummary(b){
@@ -516,7 +525,7 @@ function bankSummary(b){
   const price=ltm(p,findRow(p,/^цена акции/i)), dps=ltm(p,findRow(p,/^дивиденды на акцию/i));
   return {p, price, cap:ltm(p,findRow(p,/^капитализация/i)), pe:multLtm(p,/^p\/e$/), pb:multLtm(p,/^p\/bv?$/),
     roe:ltm(p,findRow(p,/^roe$/i)), roa:ltm(p,findRow(p,/^roa$/i)), npl:ltm(p,findRow(p,/^просроченные/i)),
-    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, up:finalUp(p.final)};
+    dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, final:p.final, up:finalUp(p.final), ...bankDivFc(b,p,price)};
 }
 
 /* ---------- средние по банковскому сектору (вкладка «средние», без МКБ) ---------- */
@@ -896,7 +905,7 @@ function renderBank(b){
       <div class="tile"><span>P/E LTM</span><b>${fmt(s.pe)}</b></div>
       <div class="tile"><span>P/BV LTM</span><b>${fmt(s.pb)}</b></div>
       <div class="tile"><span>ROE LTM</span><b>${fmt(s.roe,"pct")}</b></div>
-      <div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>
+      ${isNum(s.dyFc)?`<div class="tile"><span>Див. доходность 12 мес (прогноз)</span><b>${fmt(s.dyFc,"pct")}</b><small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">${isNum(s.dpsFc)?`дивиденд ${rub(s.dpsFc)} · `:""}${esc(s.fcLabel)}</small></div>`:`<div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>`}
       <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     </div>
     <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(b.name||b.sheet)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
