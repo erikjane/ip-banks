@@ -104,6 +104,25 @@ details.how{margin-top:4px}
 details.how summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:14px}
 details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)}
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
+/* главная — вариант C */
+.nowL{border-left:4px solid var(--blue)}
+.nowL .k{font-size:12px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.nowL .ex{background:#FFF7ED;color:#C2410C;border-radius:6px;padding:1px 6px;margin-left:4px}
+.nowL .row{display:flex;align-items:baseline;gap:12px;margin:6px 0 0;flex-wrap:wrap}
+.nowL .t{font-size:28px;font-weight:700;color:var(--blue);line-height:1}
+.nowL .p{font-size:16px;font-weight:700}
+.nowL .d{font-size:13px;color:var(--sec);margin-top:3px}
+.nowL ul{margin:12px 0 0;padding-left:18px;font-size:14px;line-height:1.45}
+.nowL li{margin:3px 0}
+.nowL details.how{margin-top:10px} .nowL details.how summary{font-size:13px;font-weight:600}
+.phases{margin-top:12px}
+.phases .line{padding:12px 0;border-top:1px solid var(--border)}
+.phases .line:first-child{border-top:0;padding-top:2px} .phases .line:last-child{padding-bottom:2px}
+.phases h4{margin:0 0 8px;font-size:14px;font-weight:700;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.phases h4 span{font-weight:500;color:var(--sec);font-size:13px}
+.phases i.sq{width:10px;height:10px;border-radius:3px;display:inline-block}
+.clockcard .corner{font-size:12px;font-weight:700}
+
 
 /* ---- таблицы ---- */
 .tbl{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:auto}
@@ -206,8 +225,8 @@ select.inl{font:inherit;font-weight:700;padding:8px 12px;border-radius:10px;bord
   body{font-size:16px}
   .clockgrid{grid-template-columns:minmax(0,1.45fr) minmax(380px,1fr);gap:24px}
   .clockcard svg{max-width:780px}
-  .now .t{font-size:44px} .now .p{font-size:18px} .now ul{font-size:15px}
-  .ph h3{font-size:18px} .ph p{font-size:14px} .chip{font-size:14px;padding:7px 12px}
+  .nowL .t{font-size:32px} .nowL .p{font-size:17px} .nowL ul{font-size:15px}
+  .phases h4{font-size:15px} .chip{font-size:14px;padding:7px 12px}
   h1{font-size:40px} .sub{font-size:17px}
   .col{gap:16px}
 }
@@ -301,37 +320,34 @@ function inlinePaint(svg){
   });
 }
 function clockSVG(hour, size, opts={}){
-  const S=size, cx=S/2, cy=S/2, R=S*0.39;
+  const S=size, cx=S/2, cy=S/2, R=S*0.36;
   const pt=(h,r)=>{const a=(h*30-90)*Math.PI/180; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]};
   const cur=phaseOf(hour), ci=phaseIdx(cur), next=PHASES[(ci+1)%4], prev=PHASES[(ci+3)%4];
   const st=p=>p===cur?"now":p===next?"next":p===prev?"prev":"far";
-  const fill={now:"#DCE6FF",next:"#DCFCE7",prev:"#FEE2E2",far:"#EEF2F7"};
-  const tagTxt={now:"сейчас",next:"следующая фаза",prev:"прошлая фаза"};
-  const tagCol={now:["#1F5CFF","#fff"],next:["#DCFCE7","#15803D"],prev:["#FEE2E2","#B91C1C"]};
+  const fill={now:"#E3EBFF",next:"#E3F9EA",prev:"#FDE8E8",far:"#F1F5F9"};
+  const tagD={now:["сейчас","#1F5CFF","#FFFFFF"],next:["следующая","#BBF7D0","#15803D"],prev:["прошлая","#FECACA","#B91C1C"]};
   const sector=(h1,h2,r)=>{const [x1,y1]=pt(h1,r),[x2,y2]=pt(h2,r); return `M${cx},${cy} L${x1},${y1} A${r},${r} 0 0 1 ${x2},${y2} Z`};
   let s=`<svg viewBox="0 0 ${S} ${S}" width="${opts.w||S}" xmlns="http://www.w3.org/2000/svg" font-family="Manrope, Arial, sans-serif">`;
-  PHASES.forEach(p=>{ s+=`<path d="${sector(p.from,p.to,R)}" fill="${fill[st(p)]}" stroke="#fff" stroke-width="${S/110}"/>`; });
-  s+=`<path d="${sector(cur.from,cur.to,R-2)}" fill="none" stroke="#1F5CFF" stroke-width="3"/>`;
-  for(let h=1;h<=12;h++){
-    const [x1,y1]=pt(h,R+S*0.012),[x2,y2]=pt(h,R+S*0.03);
-    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0F2042" stroke-width="${h%3?1.5:3}" stroke-linecap="round"/>`;
-    const [x,y]=pt(h,R+S*0.065), fs=h%3?S*0.026:S*0.04;
-    s+=`<text x="${x}" y="${y+fs*0.36}" text-anchor="middle" font-size="${fs}" font-weight="${h%3?600:800}" fill="#0F2042">${h}</text>`;
-  }
-  const [hx,hy]=pt(hour,R*0.86);
-  s+=`<line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy}" stroke="#0F2042" stroke-width="${S*0.011}" stroke-linecap="round"/>`;
-  if(opts.second!=null){ const [gx,gy]=pt(opts.second,R*0.7); s+=`<line x1="${cx}" y1="${cy}" x2="${gx}" y2="${gy}" stroke="#1F5CFF" stroke-width="${S*0.008}" stroke-dasharray="${S*0.02} ${S*0.012}" stroke-linecap="round"/>`; }
+  s+=`<circle cx="${cx}" cy="${cy}" r="${R+S*0.045}" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>`;
+  PHASES.forEach(p=>{ s+=`<path d="${sector(p.from,p.to,R)}" fill="${fill[st(p)]}" stroke="#FFFFFF" stroke-width="${Math.max(2,S/170)}"/>`; });
+  s+=`<path d="${sector(cur.from,cur.to,R)}" fill="none" stroke="#1F5CFF" stroke-width="2.5" stroke-linejoin="round"/>`;
+  for(let m=0;m<60;m++){ const h=m/5, big=m%5===0; const [x1,y1]=pt(h,R+S*(big?0.012:0.022)),[x2,y2]=pt(h,R+S*0.034);
+    s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${big?"#0F2042":"#CBD5E1"}" stroke-width="${big?2:1}" stroke-linecap="round"/>`; }
+  for(let h=1;h<=12;h++){ const [x,y]=pt(h,R+S*0.075);
+    s+=`<text x="${x}" y="${y+S*0.011}" text-anchor="middle" font-size="${S*0.031}" font-weight="${h%3?500:700}" fill="${h%3?"#475569":"#0F2042"}">${h}</text>`; }
+  const hand=(hr,len,col,w,dash)=>{const [hx,hy]=pt(hr,len),[bx,by]=pt(hr+6,R*0.08); return `<line x1="${bx}" y1="${by}" x2="${hx}" y2="${hy}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"${dash?` stroke-dasharray="${dash}"`:""}/>`;};
+  if(opts.second!=null) s+=hand(opts.second,R*0.62,"#1F5CFF",S*0.009,`${S*0.02} ${S*0.012}`);
+  s+=hand(hour,opts.labels===false?R*0.7:R*0.4,"#0F2042",S*0.012);
   if(opts.labels!==false){
     PHASES.forEach(p=>{
-      const [x,y]=pt((p.from+p.to)/2,R*0.53), list=p.sectors.map(id=>secName(id)), k=st(p);
-      const lh=S*0.034, y0=y-(list.length*lh+S*0.045)/2;
-      if(tagTxt[k]){ const [bg,fg]=tagCol[k], tw=tagTxt[k].length*S*0.0118+S*0.03;
-        s+=`<rect x="${x-tw/2}" y="${y0-S*0.06}" width="${tw}" height="${S*0.034}" rx="${S*0.017}" fill="${bg}"/><text x="${x}" y="${y0-S*0.037}" text-anchor="middle" font-size="${S*0.0185}" font-weight="700" fill="${fg}">${tagTxt[k]}</text>`; }
-      s+=`<text x="${x}" y="${y0+S*0.012}" text-anchor="middle" font-size="${S*0.023}" font-weight="800" letter-spacing="1" fill="#0F2042" stroke="#fff" stroke-width="${S*0.006}" paint-order="stroke">${p.name.toUpperCase()}</text>`;
-      list.forEach((t,i)=>{ s+=`<text x="${x}" y="${y0+S*0.05+i*lh}" text-anchor="middle" font-size="${S*0.021}" font-weight="500" fill="#475569" stroke="#fff" stroke-width="${S*0.005}" paint-order="stroke">${esc(t)}</text>`; });
+      const k=st(p), list=p.sectors.map(id=>secName(id)), [x,y]=pt((p.from+p.to)/2,R*0.6), lh=S*0.033, y0=y-(list.length*lh+S*0.04)/2+S*0.01;
+      if(tagD[k]){ const [t,bg,fg]=tagD[k], tw=t.length*S*0.0115+S*0.03;
+        s+=`<rect x="${x-tw/2}" y="${y0-S*0.058}" width="${tw}" height="${S*0.03}" rx="${S*0.015}" fill="${bg}"/><text x="${x}" y="${y0-S*0.0375}" text-anchor="middle" font-size="${S*0.0175}" font-weight="700" fill="${fg}">${t}</text>`; }
+      s+=`<text x="${x}" y="${y0}" text-anchor="middle" font-size="${S*0.022}" font-weight="700" letter-spacing="0.6" fill="#0F2042" stroke="${fill[k]}" stroke-width="5" paint-order="stroke">${p.name.toUpperCase()}</text>`;
+      list.forEach((t,i)=>{ s+=`<text x="${x}" y="${y0+S*0.04+i*lh}" text-anchor="middle" font-size="${S*0.0205}" font-weight="500" fill="#475569" stroke="${fill[k]}" stroke-width="4" paint-order="stroke">${esc(t)}</text>`; });
     });
   }
-  s+=`<circle cx="${cx}" cy="${cy}" r="${S*0.022}" fill="#0F2042"/><circle cx="${cx}" cy="${cy}" r="${S*0.009}" fill="#B6F03A"/></svg>`;
+  s+=`<circle cx="${cx}" cy="${cy}" r="${S*0.02}" fill="#0F2042"/><circle cx="${cx}" cy="${cy}" r="${S*0.008}" fill="#B6F03A"/></svg>`;
   return inlinePaint(s);
 }
 function secName(id){ const s=(D.catalog?.sectors||[]).find(x=>x.id===id); return s?s.name.replace("Банковский сектор","Банки").replace("Потребительский сектор","Потреб сектор").replace("Сетевые компании","Сетевые"):id; }
@@ -344,17 +360,21 @@ function renderHome(){
   let right="";
   if(res){
     const cur=res.phase, ci=phaseIdx(cur), next=PHASES[(ci+1)%4], prev=PHASES[(ci+3)%4], R=T.RECS[cur.id];
-    right=`<div class="card now">
-        <div class="k"><span>Сейчас на часах Инвест Привет+</span>${ck.example?'<span class="ex">пример</span>':""}</div>
-        <div class="t">${hourLabel(res.hour)}</div><div class="p">${esc(R.band)}</div>
-        <span class="upd">Последнее обновление: ${esc(ck.date)}</span>
+    const band=String(R.band||""), m=band.match(/^(.*?)\s*\((.*)\)\s*$/), bandName=m?m[1]:cur.name, bandNote=m?m[2]:"";
+    const line=(p,dot,cls,lbl,note)=>`<div class="line"><h4><i class="sq" style="background:${dot}"></i>${lbl}: ${p.name} <span>— ${note}</span></h4><div class="chips">${p.sectors.map(id=>secChip(id,cls)).join("")}</div></div>`;
+    right=`<div class="card nowL">
+        <div class="k"><span>Сейчас на часах Инвест Привет+${ck.example?' <span class="ex">пример</span>':""}</span><span>обновлено ${esc(ck.date)}</span></div>
+        <div class="row"><span class="t">${hourLabel(res.hour)}</span><span class="p">${esc(bandName)}</span></div>
+        ${bandNote?`<div class="d">${esc(bandNote.charAt(0).toUpperCase()+bandNote.slice(1))}</div>`:""}
         <ul>${R.stocks.slice(0,2).map(x=>`<li>${esc(x)}</li>`).join("")}${R.bonds.slice(0,1).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>
-        <details class="how" style="margin-top:12px"><summary style="color:#C9D7FF">Как определили — 10 сигналов</summary>
-          <ol style="color:#C9D7FF">${T.QUESTIONS.map((q,i)=>{const o=q.options.find(o=>o.key===ck.answers[i]); return `<li><b style="color:#fff">${esc(q.title)}:</b> ${o?esc(o.text):"—"}</li>`}).join("")}</ol></details>
+        <details class="how"><summary>Как определили — 10 сигналов</summary>
+          <ol>${T.QUESTIONS.map((q,i)=>{const o=q.options.find(o=>o.key===ck.answers[i]); return `<li><b>${esc(q.title)}:</b> ${o?esc(o.text):"—"}</li>`}).join("")}</ol></details>
       </div>
-      <div class="card ph"><h3><i class="dot" style="background:#86EFAC"></i>Следующая фаза: ${next.name}</h3><p>Присматриваемся заранее — рынок опережает экономику</p><div class="chips">${next.sectors.map(id=>secChip(id,"g")).join("")}</div></div>
-      <div class="card ph"><h3><i class="dot" style="background:#1F5CFF"></i>Текущая фаза: ${cur.name}</h3><p>Сектора, которые обычно сильнее рынка сейчас</p><div class="chips">${cur.sectors.map(id=>secChip(id,"b")).join("")}</div></div>
-      <div class="card ph"><h3><i class="dot" style="background:#FCA5A5"></i>Прошлая фаза: ${prev.name}</h3><p>Их время прошло — постепенно фиксируем и перекладываемся</p><div class="chips">${prev.sectors.map(id=>secChip(id,"r")).join("")}</div></div>`;
+      <div class="card phases">
+        ${line(next,"#86EFAC","g","Следующая","присматриваемся заранее")}
+        ${line(cur,"#1F5CFF","b","Текущая","обычно сильнее рынка")}
+        ${line(prev,"#FCA5A5","r","Прошлая","фиксируем и перекладываемся")}
+      </div>`;
   }
   app.innerHTML=`
     <div class="card test-cta"><div><h3>Определите фазу цикла сами</h3><p>10 вопросов о рынке и экономике — 3 минуты. Увидите своё время на часах и что делать с портфелем.</p></div>
@@ -367,7 +387,6 @@ function renderHome(){
         <div class="corner tl">Портфель<br>в акциях</div><div class="corner tr">Продажа<br>акций</div>
         <div class="corner bl">Покупка<br>акций</div><div class="corner br">Держаться<br>подальше от акций</div>
         ${res?clockSVG(res.hour,640,{w:"100%"}):"<p>Часы ещё не выставлены</p>"}
-        <div class="legend"><span><i class="dot" style="background:#DCE6FF;border:2px solid #1F5CFF"></i>сейчас</span><span><i class="dot" style="background:#DCFCE7"></i>следующая</span><span><i class="dot" style="background:#FEE2E2"></i>прошлая</span></div>
       </div>
       <div class="col">${right}</div>
     </div>
