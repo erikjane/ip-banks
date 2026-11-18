@@ -872,7 +872,21 @@ function renderBank(b){
 }
 
 /* ---------- роутинг ---------- */
+// водяной знак на всех графиках
+let wmOn=false;
+function regWatermark(){
+  if(wmOn||!window.Chart) return; wmOn=true;
+  Chart.register({id:"ipWatermark", beforeDatasetsDraw(ch){
+    const a=ch.chartArea; if(!a) return; const ctx=ch.ctx, w=a.right-a.left, h=a.bottom-a.top;
+    const fs=Math.max(14,Math.min(46,w/13)); ctx.save();
+    ctx.font=`800 ${fs}px Manrope, Arial, sans-serif`; ctx.textBaseline="middle";
+    const t="Инвест Привет", tw=ctx.measureText(t).width, pw=ctx.measureText(" +").width, x0=a.left+w/2-(tw+pw)/2, y0=a.top+h/2;
+    ctx.globalAlpha=0.07; ctx.fillStyle="#0F2042"; ctx.textAlign="left"; ctx.fillText(t,x0,y0);
+    ctx.globalAlpha=0.16; ctx.fillStyle="#1F5CFF"; ctx.fillText(" +",x0+tw,y0);
+    ctx.restore(); }});
+}
 function route(){
+  regWatermark();
   charts.splice(0).forEach(c=>c.destroy());
   const h=decodeURIComponent(location.hash.replace("#",""))||"home";
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("on", a.dataset.n===(h==="home"?"home":h==="club"?"club":"sectors")));
