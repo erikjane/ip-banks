@@ -370,14 +370,17 @@ function renderSector(secId){
   if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569"; charts.push(new Chart(document.getElementById("ipa-bub"),bubbleChart(A))); }
 }
 function bubbleChart(A){
-  const pts=A.rows.filter(x=>isNum(x.s.evE)&&isNum(x.s.debtE));
-  const capMax=Math.max(...pts.map(x=>isNum(x.s.cap)?x.s.cap:0),1);
-  const COLS=["#1F5CFF","#0F2042","#15803D","#94A3B8","#DC2626","#7C3AED"];
-  const ds=pts.map((x,i)=>({label:x.c.short, data:[{x:x.s.evE,y:x.s.debtE,r:8+32*Math.sqrt((x.s.cap||0)/capMax),cap:x.s.cap}],
+  return bubble(A.rows.map(x=>({name:x.c.short,x:x.s.evE,y:x.s.debtE,cap:x.s.cap})), A.evE, A.debtE, {x:"EV/EBITDA",y:"Долг/EBITDA",padX:1,padY:0.8});
+}
+function bubble(all, avgX, avgY, o){
+  const pts=all.filter(p=>isNum(p.x)&&isNum(p.y)), A={evE:avgX,debtE:avgY}, fx=v=>o.xPct?fmt(v,"pct"):fmt(v);
+  const capMax=Math.max(...pts.map(p=>isNum(p.cap)?p.cap:0),1);
+  const COLS=["#1F5CFF","#0F2042","#15803D","#94A3B8","#DC2626","#7C3AED","#D97706","#0891B2"];
+  const ds=pts.map((p,i)=>({label:p.name, data:[{x:p.x,y:p.y,r:7+33*Math.sqrt((p.cap||0)/capMax),cap:p.cap}],
     backgroundColor:COLS[i%COLS.length]+"CC", borderColor:COLS[i%COLS.length], borderWidth:1.5}));
-  const xs=pts.map(x=>x.s.evE), ys=pts.map(x=>x.s.debtE);
-  const pad=(a,b,k)=>[Math.floor((a-k)*2)/2, Math.ceil((b+k)*2)/2];
-  const [x0,x1]=pad(Math.min(...xs,A.evE??Infinity),Math.max(...xs,A.evE??-Infinity),1), [y0,y1]=pad(Math.min(...ys,A.debtE??Infinity,0),Math.max(...ys,A.debtE??-Infinity),0.8);
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y), st=o.step||0.5;
+  const pad=(a,b,k)=>[Math.floor((a-k)/st)*st, Math.ceil((b+k)/st)*st];
+  const [x0,x1]=pad(Math.min(...xs,avgX??Infinity),Math.max(...xs,avgX??-Infinity),o.padX), [y0,y1]=pad(Math.min(...ys,avgY??Infinity,0),Math.max(...ys,avgY??-Infinity),o.padY);
   const marks={id:"marks",afterDatasetsDraw(ch){const {ctx,scales:{x,y}}=ch; ctx.save();
     ctx.setLineDash([5,5]); ctx.strokeStyle="#94A3B8"; ctx.lineWidth=1;
     if(isNum(A.evE)){ctx.beginPath();ctx.moveTo(x.getPixelForValue(A.evE),y.top);ctx.lineTo(x.getPixelForValue(A.evE),y.bottom);ctx.stroke();}
@@ -385,14 +388,14 @@ function bubbleChart(A){
     ctx.setLineDash([]); ctx.font="600 13px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="center";
     ch.data.datasets.forEach((d,i)=>{const m=ch.getDatasetMeta(i).data[0]; if(m) ctx.fillText(d.label, m.x, m.y-d.data[0].r-8);});
     ctx.font="500 11px Manrope"; ctx.fillStyle="#64748B"; ctx.textAlign="left";
-    if(isNum(A.evE)) ctx.fillText("среднее "+fmt(A.evE), x.getPixelForValue(A.evE)+6, y.top+12);
+    if(isNum(A.evE)) ctx.fillText("среднее "+fx(A.evE), x.getPixelForValue(A.evE)+6, y.top+12);
     if(isNum(A.debtE)) ctx.fillText("среднее "+fmt(A.debtE), x.left+6, y.getPixelForValue(A.debtE)-6);
     ctx.restore();}};
   return {type:"bubble",data:{datasets:ds},plugins:[marks],options:{maintainAspectRatio:false,
     plugins:{legend:{position:"bottom",labels:{boxWidth:12,usePointStyle:true}},
-      tooltip:{callbacks:{label:c=>`${c.dataset.label}: EV/EBITDA ${fmt(c.raw.x)}, Долг/EBITDA ${fmt(c.raw.y)}, капитализация ${fmt(c.raw.cap)} млрд ₽`}}},
-    scales:{x:{min:x0,max:x1,title:{display:true,text:"EV/EBITDA"},grid:{color:"#E2E8F0"}},
-            y:{min:Math.min(...ys)>=0?0:y0,max:y1,title:{display:true,text:"Долг/EBITDA"},grid:{color:c=>c.tick.value===0?"#0F2042":"#E2E8F0"}}}}};
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${o.x} ${fx(c.raw.x)}, ${o.y} ${fmt(c.raw.y)}, капитализация ${fmt(c.raw.cap)} млрд ₽`}}},
+    scales:{x:{min:x0,max:x1,title:{display:true,text:o.x},grid:{color:"#E2E8F0"},ticks:o.xPct?{callback:v=>nf(1).format(v*100)+"%"}:{}},
+            y:{min:Math.min(...ys)>=0?0:y0,max:y1,title:{display:true,text:o.y},grid:{color:c=>c.tick.value===0?"#0F2042":"#E2E8F0"}}}}};
 }
 const COMP_CHARTS=[
   {id:"fin",t:"Выручка, EBITDA и чистая прибыль, млрд ₽"},
@@ -487,7 +490,12 @@ function renderBanks(view, selBank){
     </div>
     <h2>Банки</h2><div class="bankbtns">${btns}</div>
     <h2>Сравнение банков: маржа, риск, капитал</h2>${riskTable()}
-    <h2>Мультипликаторы банков</h2>${multTableBanks(A)}`;
+    <h2>Мультипликаторы банков</h2>${multTableBanks(A)}
+    <h2>Оценка банков: P/B и ROE (LTM)</h2>
+    <div class="card"><div class="chart-wrap" style="height:440px"><canvas id="ipa-bub"></canvas></div>
+      <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по сектору (без МКБ). Правее и ниже — выше рентабельность капитала при более низкой оценке.</p></div>`;
+  if(window.Chart&&A){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
+    charts.push(new Chart(document.getElementById("ipa-bub"), bubble(A.rows.filter(r=>!r.avgRow&&!r.excluded).map(r=>({name:r.name,x:r.roe,y:r.pb,cap:r.cap})), A.roe, A.pb, {x:"ROE",y:"P/B",xPct:true,padX:0.02,padY:0.2,step:0.025}))); }
 }
 function riskTable(){
   const g=D.sectors.banks?.sheets?.["риск"]; if(!g) return "";
