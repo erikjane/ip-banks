@@ -104,6 +104,16 @@ details.how{margin-top:4px}
 details.how summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:14px}
 details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)}
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
+.zoomcard{position:relative}
+.zoombtn{position:absolute;top:12px;right:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--navy);font:700 13px Manrope,Arial,sans-serif;border-radius:10px;padding:7px 11px;cursor:pointer}
+.zoombtn:hover{border-color:var(--blue);color:var(--blue)}
+.zoomov{position:fixed;inset:0;z-index:2147483000;background:rgba(15,32,66,.55);display:flex;align-items:center;justify-content:center;padding:12px}
+.zoombox{background:#fff;border-radius:16px;width:min(1400px,100%);height:min(900px,100%);display:flex;flex-direction:column;padding:14px 16px 12px;box-shadow:0 20px 60px rgba(15,32,66,.35)}
+.zoomhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.zoomhead b{font-size:16px;color:var(--navy)}
+.zoomx{flex:none;width:40px;height:40px;border-radius:12px;border:1px solid var(--border);background:var(--canvas);color:var(--navy);font:700 22px/1 Arial,sans-serif;cursor:pointer}
+.zoomx:hover{background:#FEE2E2;color:#B91C1C;border-color:#FECACA}
+.zoombody{position:relative;flex:1;min-height:0}
 /* главная — вариант C */
 .nowL{border-left:4px solid var(--blue)}
 .nowL .k{font-size:12px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:8px}
@@ -576,18 +586,31 @@ function renderSector(secId){
       <tr class="total"><td>Среднее</td><td></td><td></td><td>${fmt(A.mE,"pct")}</td><td>${fmt(A.mNet,"pct")}</td><td>${fmt(A.pe)}</td><td>${fmt(A.evE)}</td><td>${fmt(A.debtE)}</td><td>${fmt(A.dy,"pct")}</td><td></td></tr></tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего: рентабельность и дивиденды выше, мультипликаторы и долг ниже</span><span><i style="background:#FEE2E2"></i>хуже среднего</span></div>
     <h2>Оценка компаний: Долг/EBITDA и EV/EBITDA (LTM)</h2>
-    <div class="card"><div class="chart-wrap" style="height:420px"><canvas id="bub"></canvas></div>
+    <div class="card zoomcard">${zoomBtn()}<div class="chart-wrap" style="height:420px"><canvas id="bub"></canvas></div>
       <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по отрасли. Левее и ниже — дешевле и с меньшим долгом.</p></div>`;
-  if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569"; charts.push(new Chart(document.getElementById("bub"),bubbleChart(A))); }
+  if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569"; charts.push(new Chart(document.getElementById("bub"),bubbleChart(A)));
+    app.querySelector(".zoombtn").onclick=()=>openZoom(`${S.name}: Долг/EBITDA и EV/EBITDA (LTM)`, big=>bubbleChart(A,big)); }
 }
-function bubbleChart(A){
-  return bubble(A.rows.map(x=>({name:x.c.short,x:x.s.evE,y:x.s.debtE,cap:x.s.cap})), A.evE, A.debtE, {x:"EV/EBITDA",y:"Долг/EBITDA",padX:1,padY:0.8});
+// увеличенный график во всплывающем окне
+function openZoom(title, cfgFn){
+  const host=document.getElementById("app"), ov=document.createElement("div"); ov.className="zoomov";
+  ov.innerHTML=`<div class="zoombox"><div class="zoomhead"><b>${esc(title)}${window.innerWidth<700&&window.innerHeight>window.innerWidth?'<span style="display:block;font-size:12px;font-weight:500;color:#64748B;margin-top:2px">Поверните телефон горизонтально — график станет шире</span>':""}</b><button class="zoomx" aria-label="Закрыть">×</button></div><div class="zoombody"><canvas></canvas></div></div>`;
+  host.appendChild(ov); const prev=document.body.style.overflow; document.body.style.overflow="hidden";
+  const ch=new Chart(ov.querySelector("canvas"), cfgFn(true));
+  const close=()=>{ ch.destroy(); ov.remove(); document.body.style.overflow=prev; document.removeEventListener("keydown",esc_); };
+  const esc_=e=>{ if(e.key==="Escape") close(); };
+  ov.querySelector(".zoomx").onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); }; document.addEventListener("keydown",esc_);
+}
+function zoomBtn(){ return `<button class="zoombtn" type="button">⤢ Увеличить</button>`; }
+function bubbleChart(A,big){
+  return bubble(A.rows.map(x=>({name:x.c.short,x:x.s.evE,y:x.s.debtE,cap:x.s.cap})), A.evE, A.debtE, {x:"EV/EBITDA",y:"Долг/EBITDA",padX:1,padY:0.8,big});
 }
 function bubble(all, avgX, avgY, o){
   const pts=all.filter(p=>isNum(p.x)&&isNum(p.y)), A={evE:avgX,debtE:avgY}, fx=v=>o.xPct?fmt(v,"pct"):fmt(v);
   const capMax=Math.max(...pts.map(p=>isNum(p.cap)?p.cap:0),1);
   const COLS=["#1F5CFF","#0F2042","#15803D","#94A3B8","#DC2626","#7C3AED","#D97706","#0891B2"];
-  const ds=pts.map((p,i)=>({label:p.name, data:[{x:p.x,y:p.y,r:7+33*Math.sqrt((p.cap||0)/capMax),cap:p.cap}],
+  const W=window.innerWidth, k=o.big?Math.max(0.5,Math.min(1.15,W/1000)):(W<700?0.5:1);
+  const ds=pts.map((p,i)=>({label:p.name, data:[{x:p.x,y:p.y,r:(7+33*Math.sqrt((p.cap||0)/capMax))*k,cap:p.cap}],
     backgroundColor:COLS[i%COLS.length]+"CC", borderColor:COLS[i%COLS.length], borderWidth:1.5}));
   const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y), st=o.step||0.5;
   const pad=(a,b,k)=>[Math.floor((a-k)/st)*st, Math.ceil((b+k)/st)*st];
@@ -598,12 +621,24 @@ function bubble(all, avgX, avgY, o){
     if(isNum(A.debtE)){ctx.beginPath();ctx.moveTo(x.left,y.getPixelForValue(A.debtE));ctx.lineTo(x.right,y.getPixelForValue(A.debtE));ctx.stroke();}
     ctx.setLineDash([]);
     if(isNum(o.refY)&&o.refY>=y.min&&o.refY<=y.max){ const py=y.getPixelForValue(o.refY); ctx.strokeStyle="#0F2042"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(x.left,py); ctx.lineTo(x.right,py); ctx.stroke();
-      ctx.font="700 12px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="right"; ctx.fillText(o.refLabel||"", x.right-6, py-6); }
+      ctx.font="700 12px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="left"; ctx.fillText(o.refLabel||"", x.left+6, py-7); }
     ctx.font="600 13px Manrope"; ctx.fillStyle="#0F2042"; ctx.textAlign="center";
-    ch.data.datasets.forEach((d,i)=>{const m=ch.getDatasetMeta(i).data[0]; if(m) ctx.fillText(d.label, m.x, m.y-d.data[0].r-8);});
-    ctx.font="500 11px Manrope"; ctx.fillStyle="#64748B"; ctx.textAlign="left";
-    if(isNum(A.evE)) ctx.fillText("среднее "+fx(A.evE), x.getPixelForValue(A.evE)+6, y.top+12);
-    if(isNum(A.debtE)) ctx.fillText("среднее "+fmt(A.debtE), x.left+6, y.getPixelForValue(A.debtE)-6);
+    // подписи без наложений: пробуем сверху, снизу, справа, слева; кружки и служебные подписи — препятствия
+    const placed=[], hit=(a)=>placed.some(b=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y);
+    ch.data.datasets.forEach((d,i)=>{const m=ch.getDatasetMeta(i).data[0]; if(m){const r=d.data[0].r*0.92; placed.push({x:m.x-r,y:m.y-r,w:2*r,h:2*r});}});
+    ctx.save(); ctx.font="500 11px Manrope"; ctx.fillStyle="#64748B"; ctx.textAlign="left"; ctx.textBaseline="alphabetic";
+    const note=(t,px,py)=>{ctx.fillText(t,px,py); placed.push({x:px,y:py-11,w:ctx.measureText(t).width,h:13});};
+    if(isNum(A.evE)) note("среднее "+fx(A.evE), x.getPixelForValue(A.evE)+6, y.top+12);
+    if(isNum(A.debtE)) note("среднее "+fmt(A.debtE), x.left+6, y.getPixelForValue(A.debtE)-6);
+    if(isNum(o.refY)&&o.refY>=y.min&&o.refY<=y.max) placed.push({x:x.left+4,y:y.getPixelForValue(o.refY)-20,w:70,h:16});
+    ctx.restore();
+    const items=ch.data.datasets.map((d,i)=>({d,m:ch.getDatasetMeta(i).data[0]})).filter(t=>t.m&&!t.m.skip).sort((a,b)=>b.d.data[0].r-a.d.data[0].r);
+    items.forEach(({d,m})=>{ const r=d.data[0].r, tw=ctx.measureText(d.label).width, th=14;
+      const opts=[[m.x-tw/2,m.y-r-6-th],[m.x-tw/2,m.y+r+6],[m.x+r+6,m.y-th/2],[m.x-r-6-tw,m.y-th/2],[m.x-tw/2,m.y-r-24-th],[m.x-tw/2,m.y+r+24]];
+      let pos=opts.find(([px,py])=>!hit({x:px,y:py,w:tw,h:th})&&px>=x.left-4&&px+tw<=x.right+4)||opts[0];
+      placed.push({x:pos[0],y:pos[1],w:tw,h:th}); ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(d.label,pos[0],pos[1]); });
+    ctx.textBaseline="alphabetic";
+
     ctx.restore();}};
   return {type:"bubble",data:{datasets:ds},plugins:[marks],options:{maintainAspectRatio:false,
     plugins:{legend:{position:"bottom",labels:{boxWidth:12,usePointStyle:true}},
@@ -706,10 +741,12 @@ function renderBanks(view, selBank){
     <h2>Сравнение банков: маржа, риск, капитал</h2>${riskTable()}
     <h2>Мультипликаторы банков</h2>${multTableBanks(A)}
     <h2>Оценка банков: P/B и ROE (LTM)</h2>
-    <div class="card"><div class="chart-wrap" style="height:440px"><canvas id="bub"></canvas></div>
+    <div class="card zoomcard">${zoomBtn()}<div class="chart-wrap" style="height:440px"><canvas id="bub"></canvas></div>
       <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по сектору (без МКБ). Жирная линия — P/B = 1: ниже неё банк стоит дешевле своего капитала. Правее и ниже — выше рентабельность капитала при более низкой оценке.</p></div>`;
   if(window.Chart&&A){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
-    charts.push(new Chart(document.getElementById("bub"), bubble(A.rows.filter(r=>!r.avgRow&&!r.excluded).map(r=>({name:r.name,x:r.roe,y:r.pb,cap:r.cap})), A.roe, A.pb, {x:"ROE",y:"P/B",xPct:true,padX:0.02,padY:0.2,step:0.025,refY:1,refLabel:"P/B = 1"}))); }
+    const cfg=big=>bubble(A.rows.filter(r=>!r.avgRow&&!r.excluded).map(r=>({name:r.name,x:r.roe,y:r.pb,cap:r.cap})), A.roe, A.pb, {x:"ROE",y:"P/B",xPct:true,padX:0.02,padY:0.2,step:0.025,refY:1,refLabel:"P/B = 1",big});
+    charts.push(new Chart(document.getElementById("bub"), cfg(false)));
+    box.querySelector(".zoombtn").onclick=()=>openZoom("Банки: P/B и ROE (LTM)", cfg); }
 }
 function riskTable(){
   const g=D.sectors.banks?.sheets?.["риск"]; if(!g) return "";
