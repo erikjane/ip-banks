@@ -263,6 +263,13 @@ function parseCompany(grid){
         break;
       }
     }
+    // запасной формат (Дом РФ): «Целевая цена*» в столбце A, под ней строка значений и «апсайд»
+    if(!final) for(let r=fcRow+1;r<grid.length-2;r++){
+      const h=grid[r]||[], v=grid[r+1]||[], u=grid[r+2]||[];
+      if(/^целевая цена\s*\*?\s*$/i.test(String(h[0]??"").trim()) && typeof h[1]==="string" && h[1].trim() && isNum(v[1]) && norm(u[0])===norm("апсайд")){
+        final={labels:[h[1],h[2]].map(x=>String(x??"").trim()),values:[v[1],v[2]],upside:[u[1],u[2]]}; break;
+      }
+    }
   }
   return {cols,blocks,mult,fc,final};
 }
