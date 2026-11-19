@@ -798,8 +798,8 @@ function renderSectors(){
     if(s.id!=="banks"&&SECTORS[s.id]){ const T=on?secAverages(s.id):null, w=(x,k)=>T&&isNum(x)?fmt(x,k):"—";
       return `<tr class="${on?"link":"off"}" ${on?`onclick="location.hash='${s.id}'"`:""}>
       <td>${esc(s.name)}${on?'<span class="go">открыть</span>':'<span class="soon">скоро</span>'}</td>
-      <td>${T?T.n:"—"}</td><td>${w(T?.pe)}</td><td>${w(T?.pb)}</td><td>${w(T?.debtE)}</td><td>${w(T?.roe,"pct")}</td>
-      <td>${w(T?.mOp,"pct")}</td><td>${w(T?.mNet,"pct")}</td><td>${w(T?.dy,"pct")}</td></tr>`; }
+      <td>${T?(T.nAvg??T.n):"—"}</td><td>${w(T?.pe)}</td><td>${w(T?.pb)}</td><td>${SECTORS[s.id].kind==="fin"?'<span title="Для финансовых компаний не применимо">н/п</span>':w(T?.debtE)}</td><td>${w(T?.roe,"pct")}</td>
+      <td>${SECTORS[s.id].kind==="fin"?'<span title="Для финансовых компаний не применимо">н/п</span>':w(T?.mOp,"pct")}</td><td>${SECTORS[s.id].kind==="fin"?'<span title="Для финансовых компаний не применимо">н/п</span>':w(T?.mNet,"pct")}</td><td>${w(T?.dy,"pct")}</td></tr>`; }
     const a = s.id==="banks"? A : null;
     const na=`<span title="Для банков не применимо: у банков нет EBITDA и выручки в привычном смысле">н/п</span>`;
     const v=(x,k)=>a? (x===null? na : fmt(x,k)) : "—";
