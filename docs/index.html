@@ -105,6 +105,13 @@ details.how summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:1
 details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)}
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
 .zoomcard{position:relative}
+.tbl.canx{cursor:grab}
+.tbl.canx.dragging{cursor:grabbing}
+.tbl.canx.dragging *{pointer-events:none}
+.xbar{position:fixed;left:0;bottom:0;height:16px;overflow-x:auto;overflow-y:hidden;z-index:50;background:rgba(248,250,252,.92);border-top:1px solid var(--border);display:none}
+.xbar>div{height:1px}
+.xbar::-webkit-scrollbar{height:12px}.xbar::-webkit-scrollbar-thumb{background:#94A3B8;border-radius:8px;border:3px solid #F8FAFC}.xbar::-webkit-scrollbar-track{background:transparent}
+.xhint{font-size:12px;color:var(--muted);margin:-4px 0 6px}
 .navt td:last-child,.navt th:last-child{white-space:normal;text-align:left;min-width:200px;max-width:360px}
 .navt td:first-child{min-width:180px}
 .zoombtn{position:absolute;top:12px;right:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--surface);color:var(--navy);font:700 13px Manrope,Arial,sans-serif;border-radius:10px;padding:7px 11px;cursor:pointer}
@@ -1037,7 +1044,39 @@ function regWatermark(){
     ctx.globalAlpha=0.16; ctx.fillStyle="#1F5CFF"; ctx.fillText(" +",x0+tw,y0);
     ctx.restore(); }});
 }
+// Широкие таблицы: тянуть мышью в любом месте + плавающая полоса прокрутки внизу экрана
+let xbar=null, xcur=null, xsync=false;
+function tblSetup(){
+  const host=document.getElementById("app"); if(!host) return;
+  if(!xbar){ xbar=document.createElement("div"); xbar.className="xbar"; xbar.innerHTML="<div></div>"; (host.parentNode||document.body).appendChild(xbar);
+    xbar.addEventListener("scroll",()=>{ if(xcur&&!xsync){ xsync=true; xcur.scrollLeft=xbar.scrollLeft; xsync=false; } });
+    window.addEventListener("scroll",xbarPlace,{passive:true}); window.addEventListener("resize",()=>{tblScan();xbarPlace();}); }
+  tblScan(); xbarPlace();
+}
+function tblScan(){
+  document.querySelectorAll("#app .tbl").forEach(t=>{
+    const can=t.scrollWidth>t.clientWidth+4; t.classList.toggle("canx",can);
+    if(t._x) return; t._x=1;
+    t.addEventListener("scroll",()=>{ if(t===xcur&&!xsync){ xsync=true; xbar.scrollLeft=t.scrollLeft; xsync=false; } },{passive:true});
+    let sx=0, sl=0, down=false, moved=false;
+    t.addEventListener("mousedown",e=>{ if(e.button!==0||!t.classList.contains("canx")||e.target.closest("a,button,select,input,summary")) return; down=true; moved=false; sx=e.clientX; sl=t.scrollLeft; });
+    window.addEventListener("mousemove",e=>{ if(!down) return; const dx=e.clientX-sx; if(Math.abs(dx)>4){ moved=true; t.classList.add("dragging"); } if(moved){ t.scrollLeft=sl-dx; e.preventDefault(); } });
+    window.addEventListener("mouseup",()=>{ if(!down) return; down=false; setTimeout(()=>t.classList.remove("dragging"),0); });
+    t.addEventListener("click",e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
+  });
+}
+function xbarPlace(){
+  if(!xbar) return; const vh=window.innerHeight; let pick=null;
+  document.querySelectorAll("#app .tbl.canx").forEach(t=>{ if(pick) return; const r=t.getBoundingClientRect(); if(r.top<vh-60&&r.bottom>vh) pick=t; });
+  xcur=pick; if(!pick){ xbar.style.display="none"; return; }
+  const r=pick.getBoundingClientRect(); xbar.style.display="block"; xbar.style.left=r.left+"px"; xbar.style.width=r.width+"px";
+  xbar.firstChild.style.width=pick.scrollWidth+"px"; xsync=true; xbar.scrollLeft=pick.scrollLeft; xsync=false;
+}
+let tblObs=null;
+function tblWatch(){ const host=document.getElementById("app"); if(!host||tblObs) return;
+  tblObs=new MutationObserver(()=>{ clearTimeout(tblObs._t); tblObs._t=setTimeout(tblSetup,60); }); tblObs.observe(host,{childList:true,subtree:true}); tblSetup(); }
 function route(){
+  tblWatch();
   regWatermark();
   charts.splice(0).forEach(c=>c.destroy());
   const h=decodeURIComponent(location.hash.replace("#",""))||"home";
