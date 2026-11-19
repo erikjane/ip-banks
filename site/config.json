@@ -46,6 +46,22 @@
    }
   },
   {
+   "id": "finance",
+   "name": "Финансы",
+   "active": true,
+   "spreadsheet_id": "1cWdbGYAh364A1EzVxfhQtNcmhgkLvp5s7AVfN2F9AdM",
+   "sheets": {
+    "include": [
+     "средние",
+     "Европлан",
+     "Мосбиржа",
+     "Ренессанс",
+     "Эсэфай",
+     "Система"
+    ]
+   }
+  },
+  {
    "id": "power",
    "name": "Электрогенерация"
   },
@@ -80,10 +96,6 @@
   {
    "id": "transport",
    "name": "Транспорт"
-  },
-  {
-   "id": "finance",
-   "name": "Финансы"
   },
   {
    "id": "gold",
