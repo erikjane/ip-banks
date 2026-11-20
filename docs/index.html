@@ -327,7 +327,7 @@ function fmt(v,kind){
   const a=Math.abs(v); return nf(a>=1000?0:a>=100?1:2).format(v);
 }
 const rub=v=>isNum(v)?fmt(v)+" ₽":"—";
-const pctBadge=v=>!isNum(v)||v<=-0.999?`<span class="badge na">н/д</span>`:`<span class="badge ${v>=0?"up":"down"}">${v>=0?"+":""}${nf(1).format(v*100)}%</span>`;
+const pctBadge=v=>!isNum(v)||(v<=-0.999&&v>=-1.0001)?`<span class="badge na">н/д</span>`:`<span class="badge ${v>=0?"up":"down"}">${v>=0?"+":""}${nf(1).format(v*100)}%</span>`;
 const norm=s=>String(s??"").trim().toLowerCase().replace(/р/g,"p").replace(/е/g,"e").replace(/в/g,"b").replace(/\s+/g," ");
 const isPctLabel=l=>/темп|рентаб|\/ ?прибыль|\/ ?fcf|%|апсайд|^roe|^roa|cost of risk|маржа|npl|ratio|норматив|доля|доходность|cir|покрытие/i.test(l);
 function hourLabel(h){ h=((h%12)+12)%12; let H=Math.floor(h), M=Math.round((h-H)*60/15)*15; if(M===60){H+=1;M=0;} if(H===0)H=12; return H+":"+String(M).padStart(2,"0"); }
