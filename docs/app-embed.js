@@ -59,7 +59,8 @@ const SECTORS = {
   // nav — оценка по стоимости активов (строка «…по стоимости активов…»). noAvg — не участвует в средних по отрасли.
   finance:{name:"Финансы", kind:"fin", companies:[
     {id:"moex", short:"Мосбиржа",  sheet:"Мосбиржа",  ticker:"MOEX", review:"", fair:{mode:"mean"}},
-    {id:"leas", short:"Европлан",  sheet:"Европлан",  ticker:"LEAS", review:"", fair:{mode:"last", labels:["LTM","П2026 (ROE 17%)","П2026 (ROE 30%)","Среднее сценариев 2026"]}},
+    {id:"leas", short:"Европлан",  sheet:"Европлан",  ticker:"LEAS", review:"",
+     extraCharts:[{id:"lpY",t:"Лизинговый портфель и новый бизнес по годам, млрд ₽"},{id:"lpQ",t:"Лизинговый портфель и новый бизнес по кварталам, млрд ₽"}], defaultCharts:["lpY","lpQ"], fair:{mode:"last", labels:["LTM","П2026 (ROE 17%)","П2026 (ROE 30%)","Среднее сценариев 2026"]}},
     {id:"reni", short:"Ренессанс", sheet:"Ренессанс", ticker:"RENI", review:"", fair:{mode:"mean", labels:["LTM","П2026","П2026 с учётом гашения 10% акций"]}},
     {id:"sfin", short:"ЭсЭфАй",    sheet:"Эсэфай",    ticker:"SFIN", review:"", fair:{mode:"nav"}},
     {id:"afks", short:"АФК Система", sheet:"Система", ticker:"AFKS", review:"", fair:{mode:"nav"}, noAvg:true}]},
@@ -529,7 +530,34 @@ const COMP_CHARTS=[
   {id:"debt",t:"Чистый долг, млрд ₽ и Долг/EBITDA"},
   {id:"fcf",t:"FCF и дивиденды, млрд ₽"},
   {id:"mult",t:"P/E и EV/EBITDA"}];
+// столбцы + линии темпов роста (из строки «темпы роста» под показателем) с аккуратными подписями
+function barsGrowth(p,idx,specs){
+  const labels=idx.map(i=>p.cols[i].label), flat=p.blocks.flatMap(x=>x.rows);
+  const rowOf=re=>findRow(p,re), grOf=r=>{const k=flat.indexOf(r), t=flat[k+1]; return t&&/^темп/i.test(t.label)?t:null;};
+  const ds=[], gds=[];
+  specs.forEach(sp=>{ const r=rowOf(sp.re); if(!r) return; const t=grOf(r);
+    ds.push({label:sp.label,data:idx.map(i=>isNum(r.vals[i])?r.vals[i]:null),backgroundColor:sp.color,borderRadius:3,maxBarThickness:26});
+    gds.push({type:"line",label:"Рост: "+sp.label.toLowerCase(),data:idx.map(i=>t&&isNum(t.vals[i])&&isNum(r.vals[i])?t.vals[i]:null),yAxisID:"y1",borderColor:sp.line,backgroundColor:"#FFFFFF",borderWidth:1.5,borderDash:sp.dash||[],pointRadius:2.5,pointBorderWidth:1.5,tension:.25,spanGaps:true,_g:true,order:-1}); });
+  // убрать периоды без данных по всем столбцам
+  const keep=labels.map((_,j)=>ds.some(d=>isNum(d.data[j])));
+  const f=a=>a.filter((_,j)=>keep[j]); ds.forEach(d=>d.data=f(d.data)); gds.forEach(d=>d.data=f(d.data));
+  const L=f(labels), bars=ds.flatMap(d=>d.data).filter(isNum), gs=gds.flatMap(d=>d.data).filter(isNum);
+  const bmax=Math.max(...bars,0), gmin=gs.length?Math.min(...gs):0, gmax=gs.length?Math.max(...gs):0.1, gr_=Math.max(gmax-gmin,0.1);
+  return {type:"bar",data:{labels:L,datasets:ds.concat(gds)},options:{maintainAspectRatio:false,
+    plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:c=>c.dataset._g?`${c.dataset.label}: ${nf(0).format(c.parsed.y*100)}%`:`${c.dataset.label}: ${fmt(c.parsed.y)} млрд ₽`}}},
+    scales:{x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0,autoSkip:true}},
+      y:{min:0,max:bmax*1.75,grid:{color:c=>c.tick&&c.tick.value>bmax*1.12?"rgba(0,0,0,0)":"#E2E8F0"},ticks:{callback:v=>v>bmax*1.12?"":nf(0).format(v)}},
+      y1:{position:"right",min:gmin-gr_*1.35,max:gmax+gr_*0.18,grid:{display:false},ticks:{display:false}}}},
+    plugins:[{id:"glabels2",afterDatasetsDraw(ch){const ctx=ch.ctx, used=[]; ctx.save(); ctx.font="600 10px Manrope, Arial"; ctx.textAlign="center"; ctx.lineWidth=3; ctx.strokeStyle="rgba(255,255,255,.95)";
+      ch.data.datasets.forEach((d,di)=>{ if(!d._g||!ch.isDatasetVisible(di)) return; ch.getDatasetMeta(di).data.forEach((pt,k)=>{ const v=d.data[k]; if(!isNum(v)) return;
+        const t=(Math.round(v*100)===0?"0":nf(0).format(v*100))+"%", w=ctx.measureText(t).width;
+        const hit=y=>used.some(u=>Math.abs(u.x-pt.x)<(u.w+w)/2+2&&Math.abs(u.y-y)<11);
+        const cand=[pt.y-7,pt.y+15,pt.y-18,pt.y+26,pt.y-29,pt.y+37]; let y=cand.find(c=>!hit(c)); if(y==null) y=cand[0];
+        used.push({x:pt.x,y,w}); ctx.fillStyle=d.borderColor; ctx.strokeText(t,pt.x,y); ctx.fillText(t,pt.x,y); }); }); ctx.restore(); }}]};
+}
 function compChart(p,kind){
+  if(kind==="lpY"||kind==="lpQ"){ const idx=p.cols.map((c,i)=>i).filter(i=>kind==="lpY"?(p.cols[i].kind==="year"||p.cols[i].kind==="ltm"):p.cols[i].kind==="q");
+    return barsGrowth(p,idx,[{label:"Новый бизнес",re:/^новый бизнес/i,color:"#1F5CFF",line:"#1F5CFF"},{label:"Лизинговый портфель",re:/^лизинговый портфель/i,color:"#0F2042",line:"#0F2042",dash:[4,3]}]); }
   const yi=p.cols.map((c,i)=>i).filter(i=>p.cols[i].kind==="year"||p.cols[i].kind==="ltm"), labels=yi.map(i=>p.cols[i].label);
   const ser=re=>{const r=findRow(p,re); return yi.map(i=>r&&isNum(r.vals[i])?r.vals[i]:null)};
   const mser=re=>{const r=p.mult.find(m=>re.test(norm(m.label))); return yi.map(i=>r&&isNum(r.vals[i])&&Math.abs(r.vals[i])<60?r.vals[i]:null)};
@@ -580,7 +608,7 @@ function compChart(p,kind){
 function renderCompany(secId,co){
   const S=SECTORS[secId], s=compSummary(secId,co), app=document.getElementById("ipa-app");
   if(!s){app.innerHTML=`<p>Лист «${esc(co.sheet)}» не найден.</p>`;return}
-  const p=s.p, club=co.review||CLUB_URL||"#"; let mode="year"; const fin=S.kind==="fin", CH=fin?COMP_CHARTS_FIN:COMP_CHARTS, defs=fin?["np","cash"]:["fin","mrg"];
+  const p=s.p, club=co.review||CLUB_URL||"#"; let mode="year"; const fin=S.kind==="fin", CH=(co.extraCharts||[]).concat(fin?COMP_CHARTS_FIN:COMP_CHARTS), defs=co.defaultCharts||(fin?["np","cash"]:["fin","mrg"]);
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#${secId}">${esc(S.name)}</a> / ${esc(co.short)}</div>
     <h1>${esc(co.short)} <span class="go" style="font-size:14px;vertical-align:middle">${co.ticker}</span></h1>
     <p class="sub">МСФО · суммы в млрд ₽ · LTM — последние 12 месяцев</p>
