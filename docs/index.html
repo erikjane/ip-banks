@@ -757,7 +757,7 @@ const COMP_CHARTS_FIN=[
   {id:"roe",t:"ROE"},
   {id:"multf",t:"P/E и P/BV"}];
 const COMP_CHARTS=[
-  {id:"fin",t:"Выручка, EBITDA и чистая прибыль, млрд ₽"},
+  {id:"fin",t:"Выручка, EBITDA и чистая прибыль, млрд ₽ и темпы роста"},
   {id:"cash",t:"Денежные потоки, прибыль и дивиденды, млрд ₽"},
   {id:"mrg",t:"Рентабельность: EBITDA, операционная, чистая"},
   {id:"debt",t:"Чистый долг, млрд ₽ и Долг/EBITDA"},
@@ -771,7 +771,34 @@ function compChart(p,kind){
   const bar=(l,d,i)=>({label:l,data:d,backgroundColor:PAL[i],borderRadius:4}), line=(l,d,i,ax)=>({type:"line",label:l,data:d,borderColor:PAL[i],backgroundColor:PAL[i],tension:.3,spanGaps:true,pointRadius:3,yAxisID:ax||"y"});
   const base=(type,ds,pct,y1)=>({type,data:{labels,datasets:ds},options:{maintainAspectRatio:false,plugins:{legend,tooltip:pct?{callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y,"pct")}}:{}},
     scales:Object.assign({x:{grid:{display:false}},y:{grid,ticks:pct?pctT:{}}}, y1?{y1:{position:"right",grid:{display:false}}}:{})}});
-  if(kind==="fin") return base("bar",[bar("Выручка",ser(/^выручка/i),0),bar("EBITDA",ser(/^(скорр\.?\s*)?ebitda/i),1),bar("Чистая прибыль",ser(/^чистая прибыль/i),2)]);
+  if(kind==="fin"){
+    // темпы роста год к году (для LTM — из строки «темпы роста» таблицы); при убытке рост не считаем
+    const flat=p.blocks.flatMap(x=>x.rows);
+    const gr=re=>{const r=findRow(p,re); if(!r) return yi.map(()=>null); const k=flat.indexOf(r), tr=flat[k+1]&&/^темп/i.test(flat[k+1].label)?flat[k+1]:null;
+      return yi.map((i,j)=>{ const v=r.vals[i]; if(!isNum(v)||v<=0) return null;
+        if(p.cols[i].kind==="ltm") return tr&&isNum(tr.vals[i])?tr.vals[i]:null;
+        const pv=j>0?r.vals[yi[j-1]]:null; return isNum(pv)&&pv>0&&p.cols[yi[j-1]].kind==="year"? v/pv-1 : null; }); };
+    const GC=["#1F5CFF","#0F2042","#64748B"];
+    const gl=(l,d,i)=>({type:"line",label:l,data:d,yAxisID:"y1",borderColor:GC[i],backgroundColor:"#FFFFFF",borderWidth:1.5,borderDash:i===2?[4,3]:[],pointRadius:2.5,pointBorderWidth:1.5,tension:.25,spanGaps:true,_g:true,order:-1});
+    const reR=/^выручка/i, reE=/^(скорр\.?\s*)?ebitda/i, reN=/^чистая прибыль/i;
+    const cfg=base("bar",[bar("Выручка",ser(reR),0),bar("EBITDA",ser(reE),1),bar("Чистая прибыль",ser(reN),2),
+      gl("Рост выручки",gr(reR),0),gl("Рост EBITDA",gr(reE),1),gl("Рост прибыли",gr(reN),2)],false,true);
+    // столбцы — в нижней части, линии роста — в верхней, чтобы не налезали
+    const bars=cfg.data.datasets.filter(d=>!d._g).flatMap(d=>d.data).filter(isNum), gs=cfg.data.datasets.filter(d=>d._g).flatMap(d=>d.data).filter(isNum);
+    if(bars.length){ const bmax=Math.max(...bars,0), bmin=Math.min(...bars,0); cfg.options.scales.y.max=bmax*1.75; if(bmin<0) cfg.options.scales.y.min=bmin*1.15;
+      cfg.options.scales.y.ticks={callback:(v,i,t)=>(v>bmax*1.12||(bmin<0&&i===0))?"":nf(0).format(v)};
+      cfg.options.scales.y.grid={color:c=>c.tick&&c.tick.value>bmax*1.12?"rgba(0,0,0,0)":"#E2E8F0"}; }
+    const gmin=gs.length?Math.min(...gs):0, gmax=gs.length?Math.max(...gs):0.1, gr_=Math.max(gmax-gmin,0.1);
+    cfg.options.scales.y1={position:"right",min:gmin-gr_*1.35,max:gmax+gr_*0.18,grid:{display:false},ticks:{display:false}};
+    cfg.options.plugins.tooltip={callbacks:{label:c=>c.dataset._g?`${c.dataset.label}: ${nf(0).format(c.parsed.y*100)}%`:`${c.dataset.label}: ${fmt(c.parsed.y)} млрд ₽`}};
+    cfg.options.plugins.legend={position:"bottom",labels:{boxWidth:10,font:{size:11}}};
+    cfg.plugins=[{id:"glabels",afterDatasetsDraw(ch){const ctx=ch.ctx, used=[]; ctx.save(); ctx.font="600 10px Manrope, Arial"; ctx.textAlign="center"; ctx.lineWidth=3; ctx.strokeStyle="rgba(255,255,255,.95)";
+      ch.data.datasets.forEach((d,di)=>{ if(!d._g||!ch.isDatasetVisible(di)) return; ch.getDatasetMeta(di).data.forEach((pt,k)=>{ const v=d.data[k]; if(!isNum(v)) return;
+        const t=(Math.round(v*100)===0?"0":nf(0).format(v*100))+"%", w=ctx.measureText(t).width;
+        const hit=y=>used.some(u=>Math.abs(u.x-pt.x)<(u.w+w)/2+2&&Math.abs(u.y-y)<11);
+        const cand=[pt.y-7,pt.y+15,pt.y-18,pt.y+26,pt.y-29,pt.y+37]; let y=cand.find(c=>!hit(c)); if(y==null) y=cand[0];
+        used.push({x:pt.x,y,w}); ctx.fillStyle=d.borderColor; ctx.strokeText(t,pt.x,y); ctx.fillText(t,pt.x,y); }); }); ctx.restore(); }}];
+    return cfg; }
   if(kind==="mrg") return base("line",[line("EBITDA",ser(/^рентабельность ebitda/i),0),line("Операционная",ser(/^рентабельность операционной/i),1),line("Чистая",ser(/^рентабельность чистой/i),2)],true);
   if(kind==="debt") return base("bar",[bar("Чистый долг",ser(/^чистый долг/i),0),line("Долг/EBITDA",mser(/^долг\/ebitda$/),1,"y1")],false,true);
   if(kind==="cash"){ const neg=a=>a.map(v=>isNum(v)?-Math.abs(v):null), cb=(l,d,c)=>({label:l,data:d,backgroundColor:c,borderRadius:3,maxBarThickness:22});
