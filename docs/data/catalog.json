@@ -21,6 +21,11 @@
    "active": true
   },
   {
+   "id": "services",
+   "name": "ВУШ, Циан, Делимобиль",
+   "active": true
+  },
+  {
    "id": "power",
    "name": "Электрогенерация",
    "active": false
@@ -86,5 +91,5 @@
    "active": false
   }
  ],
- "updated": "2026-11-20T07:43:53+00:00"
+ "updated": "2026-11-20T08:14:51+00:00"
 }
