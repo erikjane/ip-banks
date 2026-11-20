@@ -105,6 +105,7 @@ details.how summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:1
 details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)}
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
 .zoomcard{position:relative}
+.notebar{border-left:4px solid var(--blue);background:#F1F5FF;padding:12px 16px;margin:10px 0 14px;font-size:14px;line-height:1.5}
 .tbl.canx{cursor:grab}
 .tbl.canx.dragging{cursor:grabbing}
 .tbl.canx.dragging *{pointer-events:none}
@@ -292,7 +293,14 @@ const SECTORS = {
     {id:"leas", short:"Европлан",  sheet:"Европлан",  ticker:"LEAS", review:"", fair:{mode:"last", labels:["LTM","П2026 (ROE 17%)","П2026 (ROE 30%)","Среднее сценариев 2026"]}},
     {id:"reni", short:"Ренессанс", sheet:"Ренессанс", ticker:"RENI", review:"", fair:{mode:"mean", labels:["LTM","П2026","П2026 с учётом гашения 10% акций"]}},
     {id:"sfin", short:"ЭсЭфАй",    sheet:"Эсэфай",    ticker:"SFIN", review:"", fair:{mode:"nav"}},
-    {id:"afks", short:"АФК Система", sheet:"Система", ticker:"AFKS", review:"", fair:{mode:"nav"}, noAvg:true}]}
+    {id:"afks", short:"АФК Система", sheet:"Система", ticker:"AFKS", review:"", fair:{mode:"nav"}, noAvg:true}]},
+  services:{name:"ВУШ, Циан, Делимобиль", companies:[
+    {id:"cnru", short:"Циан", sheet:"Циан", ticker:"CNRU", review:"", divLast4q:true,
+     banner:"Сейчас Т-Технологии и Альфа-Банк хотят выкупить Циан по 993 ₽ за акцию. Ясности по выкупу пока нет: условия и сроки не определены."},
+    {id:"wush", short:"ВУШ", sheet:"ВУШ", ticker:"WUSH", review:"", fcOnly:["ev/ebitda"],
+     fcNote:"Оценка по P/E для ВУШ не имеет смысла: компания сейчас убыточна (чистая прибыль LTM отрицательная, во многом из‑за высоких процентов по долгу). Поэтому справедливая стоимость считается только по EV/EBITDA — он учитывает и долг, и операционную прибыль до процентов."},
+    {id:"deli", short:"Делимобиль", sheet:"Делимобиль", ticker:"DELI", review:"", fcOnly:["ev/ebitda"],
+     fcNote:"Оценка по P/E для Делимобиля не имеет смысла: компания убыточна, а прибыль съедают проценты по большому долгу. Поэтому справедливая стоимость считается только по EV/EBITDA. Обратите внимание: по среднеотраслевому мультипликатору долг больше стоимости бизнеса, и целевая цена получается отрицательной — итог это учитывает."}]}
 };
 // Фазы на часах: с какого по какой час, отрасли (id из каталога) — согласовать
 const PHASES = [
@@ -570,9 +578,10 @@ function compSummary(secId,c){
   // дивиденд: LTM, либо прогнозный (столбец «Прогноз…»), если для компании так задано
   const dRow=findRow(p,/^дивиденды на акцию/i), fci=p.cols.findIndex(x=>x.kind==="fc");
   const dpsFc=c.divForecast&&dRow&&fci>=0&&isNum(dRow.vals[fci])? dRow.vals[fci] : null;
-  const price=L(/^цена акции/i), dps=dpsFc??L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
+  let dps4=null; if(c.divLast4q&&dRow){ const qi=p.cols.map((x,i)=>i).filter(i=>p.cols[i].kind==="q").slice(-4); const v=qi.map(i=>dRow.vals[i]).filter(isNum); if(v.length) dps4=v.reduce((a,b)=>a+b,0); }
+  const price=L(/^цена акции/i), dps=dpsFc??dps4??L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
   const pb=mval(p,/^p\/bv?$/);
-  const out={p, price, cap, rev:L(/^выручка/i), ebitda:L(/^ebitda/i), np,
+  const out={p, price, cap, rev:L(/^выручка/i), ebitda:L(/^(скорр\.?\s*)?ebitda/i), np, dy4:dps4!=null,
     pe:mval(p,/^p\/e$/), evE:mval(p,/^ev\/ebitda$/), debtE:mval(p,/^долг\/ebitda$/), pb,
     pbOk: isNum(pb)&&pb>0&&pb<5,
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
@@ -618,7 +627,8 @@ function secAverages(secId){
   const S=SECTORS[secId]; if(!S||!D.sectors[secId]) return null;
   const rows=S.companies.map(c=>({c, s:compSummary(secId,c)})).filter(x=>x.s);
   const avg=(k,ok)=>{const v=rows.filter(x=>!x.c.noAvg&&(!ok||x.s[ok])).map(x=>x.s[k]).filter(isNum); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null;};
-  return {rows, n:rows.length, nAvg:rows.filter(x=>!x.c.noAvg).length, noAvg:rows.filter(x=>x.c.noAvg).map(x=>x.c.short), pe:avg("pe"), evE:avg("evE"), debtE:avg("debtE"), pb:avg("pb","pbOk"), roe:avg("roe"),
+  const pePos=(()=>{const v=rows.filter(x=>!x.c.noAvg).map(x=>x.s.pe).filter(v=>isNum(v)&&v>0); return v.length? v.reduce((a,b)=>a+b,0)/v.length : null;})();
+  return {rows, n:rows.length, nAvg:rows.filter(x=>!x.c.noAvg).length, noAvg:rows.filter(x=>x.c.noAvg).map(x=>x.c.short), pe:pePos, peLoss:rows.filter(x=>isNum(x.s.pe)&&x.s.pe<=0).map(x=>x.c.short), evE:avg("evE"), debtE:avg("debtE"), pb:avg("pb","pbOk"), roe:avg("roe"),
     mE:avg("mE"), mOp:avg("mOp"), mNet:avg("mNet"), dy:avg("dy"), up:avg("up"),
     pbOut:rows.filter(x=>isNum(x.s.pb)&&!x.s.pbOk).map(x=>x.c.short)};
 }
@@ -631,10 +641,12 @@ function renderSector(secId){
   if(S.kind==="fin") return renderSectorFin(secId,S,A,app,btns,c,up);
   const body=A.rows.map(({c:co,s})=>`<tr class="link" onclick="location.hash='${secId}-${co.id}'"><td>${esc(co.short)} <small style="color:var(--muted)">${co.ticker}</small></td>
     <td>${fmt(s.cap)}</td><td>${fmt(s.rev)}</td><td class="${c(s.mE,A.mE,1)}">${fmt(s.mE,"pct")}</td><td class="${c(s.mNet,A.mNet,1)}">${fmt(s.mNet,"pct")}</td>
-    <td class="${c(s.pe,A.pe,-1)}">${fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
+    <td class="${isNum(s.pe)&&s.pe>0?c(s.pe,A.pe,-1):""}">${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted)">убыток</span>':fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
     <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}${s.dyFc?' <small style="color:var(--muted)">(прогноз)</small>':""}</td><td>${up(s.up)}</td></tr>`).join("");
+  const notes=[A.peLoss.length?`P/E: ${A.peLoss.join(", ")} — убыток, в средний P/E не ${A.peLoss.length>1?"входят":"входит"}.`:"", A.pbOut.length?`P/B: ${A.pbOut.join(", ")} — собственный капитал маленький, в средний P/B не ${A.pbOut.length>1?"входят":"входит"}.`:""].filter(Boolean).join(" ");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
     <h1>${esc(S.name)}</h1><p class="sub">${A.n} компании в среднем · МСФО · LTM — последние 12 месяцев · суммы в млрд ₽</p>
+    ${A.rows.filter(x=>x.c.banner).map(x=>`<div class="card notebar"><b>${esc(x.c.short)}:</b> ${esc(x.c.banner)}</div>`).join("")}
     <div class="tiles">
       <div class="tile"><span>Средний P/E</span><b>${fmt(A.pe)}</b></div>
       <div class="tile"><span>Средний EV/EBITDA</span><b>${fmt(A.evE)}</b></div>
@@ -647,6 +659,7 @@ function renderSector(secId){
     <div class="tbl compact wrapth"><table><thead><tr><th>Компания</th><th>Капитализация, млрд ₽</th><th>Выручка LTM, млрд ₽</th><th>Рентаб. EBITDA</th><th>Чистая рентаб.</th><th>P/E</th><th>EV/EBITDA</th><th>Долг/EBITDA</th><th>Див. доходность</th><th>Апсайд к справедливой</th></tr></thead><tbody>${body}
       <tr class="total"><td>Среднее</td><td></td><td></td><td>${fmt(A.mE,"pct")}</td><td>${fmt(A.mNet,"pct")}</td><td>${fmt(A.pe)}</td><td>${fmt(A.evE)}</td><td>${fmt(A.debtE)}</td><td>${fmt(A.dy,"pct")}</td><td></td></tr></tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего: рентабельность и дивиденды выше, мультипликаторы и долг ниже</span><span><i style="background:#FEE2E2"></i>хуже среднего</span></div>
+    ${notes?`<p class="note">${esc(notes)}</p>`:""}
     <h2>Оценка компаний: Долг/EBITDA и EV/EBITDA (LTM)</h2>
     <div class="card zoomcard">${zoomBtn()}<div class="chart-wrap" style="height:420px"><canvas id="bub"></canvas></div>
       <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по отрасли. Левее и ниже — дешевле и с меньшим долгом.</p></div>`;
@@ -755,7 +768,7 @@ function compChart(p,kind){
   const bar=(l,d,i)=>({label:l,data:d,backgroundColor:PAL[i],borderRadius:4}), line=(l,d,i,ax)=>({type:"line",label:l,data:d,borderColor:PAL[i],backgroundColor:PAL[i],tension:.3,spanGaps:true,pointRadius:3,yAxisID:ax||"y"});
   const base=(type,ds,pct,y1)=>({type,data:{labels,datasets:ds},options:{maintainAspectRatio:false,plugins:{legend,tooltip:pct?{callbacks:{label:c=>c.dataset.label+": "+fmt(c.parsed.y,"pct")}}:{}},
     scales:Object.assign({x:{grid:{display:false}},y:{grid,ticks:pct?pctT:{}}}, y1?{y1:{position:"right",grid:{display:false}}}:{})}});
-  if(kind==="fin") return base("bar",[bar("Выручка",ser(/^выручка/i),0),bar("EBITDA",ser(/^ebitda/i),1),bar("Чистая прибыль",ser(/^чистая прибыль/i),2)]);
+  if(kind==="fin") return base("bar",[bar("Выручка",ser(/^выручка/i),0),bar("EBITDA",ser(/^(скорр\.?\s*)?ebitda/i),1),bar("Чистая прибыль",ser(/^чистая прибыль/i),2)]);
   if(kind==="mrg") return base("line",[line("EBITDA",ser(/^рентабельность ebitda/i),0),line("Операционная",ser(/^рентабельность операционной/i),1),line("Чистая",ser(/^рентабельность чистой/i),2)],true);
   if(kind==="debt") return base("bar",[bar("Чистый долг",ser(/^чистый долг/i),0),line("Долг/EBITDA",mser(/^долг\/ebitda$/),1,"y1")],false,true);
   if(kind==="cash"){ const neg=a=>a.map(v=>isNum(v)?-Math.abs(v):null), cb=(l,d,c)=>({label:l,data:d,backgroundColor:c,borderRadius:3,maxBarThickness:22});
@@ -775,14 +788,15 @@ function renderCompany(secId,co){
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#${secId}">${esc(S.name)}</a> / ${esc(co.short)}</div>
     <h1>${esc(co.short)} <span class="go" style="font-size:14px;vertical-align:middle">${co.ticker}</span></h1>
     <p class="sub">МСФО · суммы в млрд ₽ · LTM — последние 12 месяцев</p>
+    ${co.banner?`<div class="card notebar"><b>Важно:</b> ${esc(co.banner)}</div>`:""}
     <div class="bankbtns" style="margin-bottom:6px">${S.companies.map(x=>`<a class="btn" style="${x===co?"border-color:#1F5CFF;background:#F1F5FF":""}" href="#${secId}-${x.id}">${esc(x.short)}</a>`).join("")}</div>
     <div class="tiles">
       <div class="tile"><span>Цена акции (ао)</span><b>${rub(s.price)}</b></div>
       <div class="tile"><span>Капитализация, млрд</span><b>${fmt(s.cap)}</b></div>
-      <div class="tile"><span>P/E LTM</span><b>${fmt(s.pe)}</b></div>
+      <div class="tile"><span>P/E LTM</span><b>${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted);font-size:.8em">убыток</span>':fmt(s.pe)}</b></div>
       ${fin?`<div class="tile"><span>P/BV LTM</span><b>${fmt(s.pb)}</b></div><div class="tile"><span>ROE LTM</span><b>${fmt(s.roe,"pct")}</b></div>`
          :`<div class="tile"><span>EV/EBITDA LTM</span><b>${fmt(s.evE)}</b></div><div class="tile"><span>Долг/EBITDA LTM</span><b>${fmt(s.debtE)}</b></div>`}
-      <div class="tile"><span>${s.dyFc?"Див. доходность (прогноз)":"Див. доходность 12 мес"}</span><b>${fmt(s.dy,"pct")}</b>${s.dyFc?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">дивиденд ${rub(s.dps)}${(()=>{const m=String(p.cols.find(x=>x.kind==="fc")?.label||"").match(/(\d{2,4})/); return m?" за "+(m[1].length===2?"20"+m[1]:m[1])+" г.":""})()}</small>`:""}</div>
+      <div class="tile"><span>${s.dyFc?"Див. доходность (прогноз)":"Див. доходность 12 мес"}</span><b>${fmt(s.dy,"pct")}</b>${s.dy4?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">выплаты за 4 квартала: ${rub(s.dps)}</small>`:""}${s.dyFc?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">дивиденд ${rub(s.dps)}${(()=>{const m=String(p.cols.find(x=>x.kind==="fc")?.label||"").match(/(\d{2,4})/); return m?" за "+(m[1].length===2?"20"+m[1]:m[1])+" г.":""})()}</small>`:""}</div>
       <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     </div>
     <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(co.short)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
@@ -790,7 +804,7 @@ function renderCompany(secId,co){
     <div class="charts">${[0,1].map(k=>`<div class="card"><select class="csel" id="sel${k}">${CH.map(c=>`<option value="${c.id}"${c.id===defs[k]?" selected":""}>${c.t}</option>`).join("")}</select><div class="chart-wrap"><canvas id="c${k}"></canvas></div></div>`).join("")}</div>
     <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="tg"><button data-m="year" class="on">Годы</button><button data-m="q">Кварталы</button><button data-m="all">Все</button></div></div>
     <div id="fin"></div><h2>Мультипликаторы</h2><div id="mult"></div>
-    ${p.fc.length||!s.nav?`<h2>Мультипликаторный прогноз</h2>${fcHTML(p,s.price,s)}`:""}${s.nav?navHTML(s):""}`;
+    ${p.fc.length||!s.nav?`<h2>Мультипликаторный прогноз</h2>${co.fcNote?`<div class="card notebar"><b>Почему только EV/EBITDA.</b> ${esc(co.fcNote)}</div>`:""}${fcHTML(co.fcOnly?{...p,fc:p.fc.filter(b=>co.fcOnly.includes(norm(b.method)))}:p,s.price,s)}`:""}${s.nav?navHTML(s):""}`;
   const draw=()=>{document.getElementById("fin").innerHTML=tableHTML(p,mode);document.getElementById("mult").innerHTML=multHTML(p,mode)}; draw();
   document.getElementById("tg").onclick=e=>{const x=e.target.closest("button"); if(!x) return; mode=x.dataset.m; [...e.currentTarget.children].forEach(y=>y.classList.toggle("on",y===x)); draw();};
   if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
@@ -931,13 +945,13 @@ function renderRsbu(box, selBank){
 
 /* ---------- страница банка ---------- */
 function tableHTML(p,mode){
-  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year"));
+  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.blocks.some(b=>b.rows.some(r=>isNum(r.vals[i]))));
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
   const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>`<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?"neg":""}">${fmt(v,r.pct?"pct":"")}</td>`}).join("")}</tr>`).join("")).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function multHTML(p,mode){
-  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year"));
+  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
   const body=p.mult.map(m=>{const debt=/^долг/.test(norm(m.label)), cls=v=>!isNum(v)||!isNum(m.avg)?"":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
     return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${fmt(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i])}">${fmt(m.vals[i])}</td>`).join("")}</tr>`}).join("");
@@ -1012,7 +1026,7 @@ function renderBank(b){
     <div class="tiles">
       <div class="tile"><span>Цена акции (ао)</span><b>${rub(s.price)}</b></div>
       <div class="tile"><span>Капитализация, млрд</span><b>${fmt(s.cap)}</b></div>
-      <div class="tile"><span>P/E LTM</span><b>${fmt(s.pe)}</b></div>
+      <div class="tile"><span>P/E LTM</span><b>${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted);font-size:.8em">убыток</span>':fmt(s.pe)}</b></div>
       <div class="tile"><span>P/BV LTM</span><b>${fmt(s.pb)}</b></div>
       <div class="tile"><span>ROE LTM</span><b>${fmt(s.roe,"pct")}</b></div>
       ${isNum(s.dyFc)?`<div class="tile"><span>Див. доходность 12 мес (прогноз)</span><b>${fmt(s.dyFc,"pct")}</b><small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">${isNum(s.dpsFc)?`дивиденд ${rub(s.dpsFc)} · `:""}${esc(s.fcLabel)}</small></div>`:`<div class="tile"><span>Див. доходность 12 мес</span><b>${fmt(s.dy,"pct")}</b></div>`}
