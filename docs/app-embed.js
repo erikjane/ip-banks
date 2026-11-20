@@ -753,7 +753,7 @@ function fcHTML(p,price,avg){
     const rows=b.rows.map(r=>{let l=r.label; const m=l.match(/^целевая цена\s*(\d)?\s*(\(.+\))?/i);
       if(m){const suf=m[2]||""; cnt[suf]=(cnt[suf]||0)+1; l=`Целевая цена ${suf} · ${by(cnt[suf])}`;}
       const up=/^апсайд/i.test(r.label), tp=/^целевая цена/i.test(r.label);
-      const cell=v=>up?pctBadge(v):tp?(isNum(v)&&v>0?`<b>${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
+      const cell=v=>up?pctBadge(v):tp?(isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
       return `<tr><td>${esc(l)}</td><td>${cell(r.v1)}</td><td>${cell(r.v2)}</td></tr>`}).join("");
     return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th><th>${esc(b.h2)}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
