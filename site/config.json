@@ -129,7 +129,7 @@
   }
  ],
  "rsbu": {
-  "csv_base": "https://raw.githubusercontent.com/zaletovaea-ui/ip-banks/main/data/"
+  "csv_base": "https://raw.githubusercontent.com/erikjane/ip-banks/main/data/"
  },
  "clock": {
   "spreadsheet_id": "1WaxWTTxhYo82lVwOAChQCdfKtO7EAi-8HvypZGdn7gs",

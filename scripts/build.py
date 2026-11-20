@@ -19,7 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 CACHE = os.path.join(DATA, "raw")
 DEBUG = os.path.join(DATA, "debug")
-UA = {"User-Agent": "Mozilla/5.0 (ip-banks; github.com/zaletovaea-ui/ip-banks)"}
+UA = {"User-Agent": "Mozilla/5.0 (ip-banks; github.com/erikjane/ip-banks)"}
 START = dt.date(2023, 7, 1)          # раньше ЦБ не публиковал формы (пауза 2022–2023)
 REFRESH_LAST = 2                     # последние N файлов качаем заново (ЦБ иногда уточняет)
 

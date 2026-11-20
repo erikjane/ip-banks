@@ -21,7 +21,7 @@
    Затем IAM & Admin → Service Accounts → Create service account (любое имя, роли не нужны) → открыть его → Keys → Add key → JSON. Скачается файл-ключ.
 2. **Доступ к таблицам.** В каждой из трёх таблиц: «Настройки доступа» → добавить email сервисного аккаунта (`...@...iam.gserviceaccount.com`) как **Читатель**.
 3. **Секрет.** GitHub → ip-banks → Settings → Secrets and variables → Actions → New repository secret: имя `GOOGLE_SERVICE_ACCOUNT_JSON`, значение — всё содержимое JSON-ключа.
-4. **Pages.** Settings → Pages → Source: Deploy from a branch → `main` / `/docs` → Save. Сайт: `https://zaletovaea-ui.github.io/ip-banks/`. Свой домен (поддомен investprivet.online) подключается там же.
+4. **Pages.** Settings → Pages → Source: Deploy from a branch → `main` / `/docs` → Save. Сайт: `https://erikjane.github.io/ip-banks/`. Свой домен (поддомен investprivet.online) подключается там же.
 5. **Проверка.** Actions → `site-data` → Run workflow.
 
 ## Как обновлять часы

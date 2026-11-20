@@ -4,7 +4,7 @@
  *
  * Установка: Расширения → Apps Script → вставить этот файл → Сохранить.
  * Настройки проекта → Свойства скрипта → добавить:
- *   GITHUB_REPO  = zaletovaea-ui/ip-banks
+ *   GITHUB_REPO  = erikjane/ip-banks
  *   GITHUB_TOKEN = fine-grained токен GitHub с правом «Actions: Read and write» только на этот репозиторий
  * После перезагрузки таблицы появится меню «Сайт».
  */

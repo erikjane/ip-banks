@@ -41,9 +41,9 @@ def pid(t):
         t=t.replace(a,b)
     return t
 body_html=pid(body_html); js=pid(js)
-js=js.replace('const DATA_URL = "data/";','const DATA_URL = "https://raw.githubusercontent.com/zaletovaea-ui/ip-banks/main/docs/data/";')
+js=js.replace('const DATA_URL = "data/";','const DATA_URL = "https://raw.githubusercontent.com/erikjane/ip-banks/main/docs/data/";')
 js=js.replace('window.scrollTo(0,0);','{const a=document.getElementById("ipapp"); const y=a.getBoundingClientRect().top+window.scrollY-10; if(window.scrollY>y) window.scrollTo(0,y);}')
-block=f'''<!-- Инвест Привет+ · Инвест-часы и отрасли. HTML-блок для GetCourse. Данные берутся из GitHub (zaletovaea-ui/ip-banks) и обновляются сами. -->
+block=f'''<!-- Инвест Привет+ · Инвест-часы и отрасли. HTML-блок для GetCourse. Данные берутся из GitHub (erikjane/ip-banks) и обновляются сами. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>

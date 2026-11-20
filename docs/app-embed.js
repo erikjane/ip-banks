@@ -1,7 +1,7 @@
 /* Инвест Привет+ · Инвест-часы и отрасли — встраивание на GetCourse и другие сайты.
    На странице нужно только:
    <div id="ipapp"></div>
-   <script src="https://cdn.jsdelivr.net/gh/zaletovaea-ui/ip-banks@main/docs/embed.js"></script>
+   <script src="https://cdn.jsdelivr.net/gh/erikjane/ip-banks@main/docs/embed.js"></script>
    Данные подтягиваются из docs/data этого репозитория. */
 (function(){
   var root=document.getElementById("ipapp");
@@ -36,7 +36,7 @@
 (function(){
 
 /* ================= НАСТРОЙКИ ================= */
-const DATA_URL = "https://raw.githubusercontent.com/zaletovaea-ui/ip-banks/main/docs/data/";                       // где лежат JSON (GitHub Pages)
+const DATA_URL = "https://raw.githubusercontent.com/erikjane/ip-banks/main/docs/data/";                       // где лежат JSON (GitHub Pages)
 const COURSE_URL = "https://investprivet.online/oa";
 const CLUB_URL = "";                            // ссылка на клуб (пока пусто)
 // Кнопки банков (порядок — как во вкладке «риск»). sheet — лист в таблице «Банковский сектор», rsbu — имя в РСБУ.

@@ -12,7 +12,7 @@ protect_css='''
 embed='''/* Инвест Привет+ · Инвест-часы и отрасли — встраивание на GetCourse и другие сайты.
    На странице нужно только:
    <div id="ipapp"></div>
-   <script src="https://cdn.jsdelivr.net/gh/zaletovaea-ui/ip-banks@main/docs/embed.js"></script>
+   <script src="https://cdn.jsdelivr.net/gh/erikjane/ip-banks@main/docs/embed.js"></script>
    Данные подтягиваются из docs/data этого репозитория. */
 (function(){
   var root=document.getElementById("ipapp");
@@ -52,7 +52,7 @@ APP_HERE
 embed=embed.replace('CSS_HERE',json.dumps(css+protect_css,ensure_ascii=False)).replace('HTML_HERE',json.dumps(html.strip(),ensure_ascii=False)).replace('APP_HERE',js)
 open('/home/claude/v2/embed.js','w').write(embed)  # -> docs/app-embed.js (docs/embed.js — загрузчик)
 snippet='''<div id="ipapp"></div>
-<script src="https://cdn.jsdelivr.net/gh/zaletovaea-ui/ip-banks@main/docs/embed.js"></script>'''
+<script src="https://cdn.jsdelivr.net/gh/erikjane/ip-banks@main/docs/embed.js"></script>'''
 open('/home/claude/v2/getcourse_code.txt','w').write(snippet+'\n')
 page='''<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Georgia,serif;background:#eee;margin:0} *{letter-spacing:2px} table{width:40%} .gc-wrap{max-width:1300px;margin:20px auto;padding:0 20px}</style></head>
 <body><div style="background:#333;color:#fff;padding:20px">GetCourse шапка</div><div class="gc-wrap">'''+snippet+'''</div></body></html>'''
