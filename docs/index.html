@@ -106,6 +106,7 @@ details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
 .zoomcard{position:relative}
 .goodneg,.tbl td.goodneg{color:#15803D !important;font-weight:600}
+.tbl td.badneg{color:#B91C1C !important;font-weight:600}
 .tbl td.goodneg:not(.lo){background:#F0FDF4}
 .notebar{border-left:4px solid var(--blue);background:#F1F5FF;padding:12px 16px;margin:10px 0 14px;font-size:14px;line-height:1.5}
 .tbl.canx{cursor:grab}
@@ -643,7 +644,7 @@ function renderSector(secId){
   if(S.kind==="fin") return renderSectorFin(secId,S,A,app,btns,c,up);
   const body=A.rows.map(({c:co,s})=>`<tr class="link" onclick="location.hash='${secId}-${co.id}'"><td>${esc(co.short)} <small style="color:var(--muted)">${co.ticker}</small></td>
     <td>${fmt(s.cap)}</td><td>${fmt(s.rev)}</td><td class="${c(s.mE,A.mE,1)}">${fmt(s.mE,"pct")}</td><td class="${c(s.mNet,A.mNet,1)}">${fmt(s.mNet,"pct")}</td>
-    <td class="${isNum(s.pe)&&s.pe>0?c(s.pe,A.pe,-1):""}">${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted)">убыток</span>':fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
+    <td class="${isNum(s.pe)&&s.pe>0?c(s.pe,A.pe,-1):""}">${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted)">убыток</span>':fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${isNum(s.debtE)&&s.debtE<0?(isNum(s.ebitda)&&s.ebitda<0?"bd":"gd"):c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
     <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}${s.dyFc?' <small style="color:var(--muted)">(прогноз)</small>':""}</td><td>${up(s.up)}</td></tr>`).join("");
   const notes=[A.peLoss.length?`P/E: ${A.peLoss.join(", ")} — убыток, в средний P/E не ${A.peLoss.length>1?"входят":"входит"}.`:"", A.pbOut.length?`P/B: ${A.pbOut.join(", ")} — собственный капитал маленький, в средний P/B не ${A.pbOut.length>1?"входят":"входит"}.`:""].filter(Boolean).join(" ");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
@@ -955,8 +956,10 @@ function tableHTML(p,mode){
 function multHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
-  const body=p.mult.map(m=>{const debt=/^долг/.test(norm(m.label)), cls=v=>!isNum(v)?"":(debt&&v<0)?"lo goodneg":!isNum(m.avg)?"":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
-    return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${fmt(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i])}">${fmt(m.vals[i])}</td>`).join("")}</tr>`}).join("");
+  // отрицательный Долг/EBITDA: при отрицательной EBITDA — плохо (красный), при отрицательном чистом долге — хорошо (зелёный)
+  const ebRow=findRow(p,/^(скорр\.?\s*)?(ebitda|oibda)/i);
+  const body=p.mult.map(m=>{const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
+    return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${fmt(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i],i)}">${fmt(m.vals[i])}</td>`).join("")}</tr>`}).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>серым — отрицательный (убыток), не сравнивается</span></div>`;
 }
