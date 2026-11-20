@@ -105,6 +105,8 @@ details.how summary{cursor:pointer;font-weight:700;color:var(--blue);font-size:1
 details.how ol{margin:10px 0 0;padding-left:20px;font-size:14px;color:var(--sec)}
 details.how li{margin:5px 0} details.how li b{color:var(--navy)}
 .zoomcard{position:relative}
+.goodneg,.tbl td.goodneg{color:#15803D !important;font-weight:600}
+.tbl td.goodneg:not(.lo){background:#F0FDF4}
 .notebar{border-left:4px solid var(--blue);background:#F1F5FF;padding:12px 16px;margin:10px 0 14px;font-size:14px;line-height:1.5}
 .tbl.canx{cursor:grab}
 .tbl.canx.dragging{cursor:grabbing}
@@ -947,13 +949,13 @@ function renderRsbu(box, selBank){
 function tableHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.blocks.some(b=>b.rows.some(r=>isNum(r.vals[i]))));
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
-  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>`<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?"neg":""}">${fmt(v,r.pct?"pct":"")}</td>`}).join("")}</tr>`).join("")).join("");
+  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); return `<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${fmt(v,r.pct?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function multHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
-  const body=p.mult.map(m=>{const debt=/^долг/.test(norm(m.label)), cls=v=>!isNum(v)||!isNum(m.avg)?"":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
+  const body=p.mult.map(m=>{const debt=/^долг/.test(norm(m.label)), cls=v=>!isNum(v)?"":(debt&&v<0)?"lo goodneg":!isNum(m.avg)?"":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
     return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${fmt(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i])}">${fmt(m.vals[i])}</td>`).join("")}</tr>`}).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>серым — отрицательный (убыток), не сравнивается</span></div>`;
@@ -984,7 +986,8 @@ function fcHTML(p,price,avg){
     const rows=b.rows.map(r=>{let l=r.label; const m=l.match(/^целевая цена\s*(\d)?\s*(\(.+\))?/i);
       if(m){const suf=m[2]||""; cnt[suf]=(cnt[suf]||0)+1; l=`Целевая цена ${suf} · ${by(cnt[suf])}`;}
       const up=/^апсайд/i.test(r.label), tp=/^целевая цена/i.test(r.label);
-      const cell=v=>up?pctBadge(v):tp?(isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
+      const nd=/чистого долга|чистый долг/i.test(r.label);
+      const cell=v=>nd&&isNum(v)&&v<0?`<span class="goodneg">${fmt(v)}</span>`:up?pctBadge(v):tp?(isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
       return `<tr><td>${esc(l)}</td><td>${cell(r.v1)}</td><td>${cell(r.v2)}</td></tr>`}).join("");
     return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th><th>${esc(b.h2)}</th></tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
