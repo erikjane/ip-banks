@@ -83,7 +83,7 @@
   {
    "id": "medicine",
    "name": "Медицина",
-   "active": true
+   "active": false
   },
   {
    "id": "industry",
@@ -91,5 +91,5 @@
    "active": false
   }
  ],
- "updated": "2026-11-23T20:43:09+00:00"
+ "updated": "2026-11-23T14:29:46+00:00"
 }
