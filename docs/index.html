@@ -477,7 +477,7 @@ function renderTest(box){
 function parseCompany(grid){
   const head=grid[0]||[], cols=[];
   for(let c=2;c<head.length;c++){
-    const h=head[c]; if(h===""||h==null){ if(cols.length) break; else continue; }
+    const h=head[c]; if(h===""||h==null){ if(head[0]==="MDMG" && head.slice(c+1).some(v=>/^LTM$/i.test(String(v).trim()))) continue; if(cols.length) break; else continue; }
     if(/коммент/i.test(String(h))) break;
     const label=isNum(h)?String(Math.round(h)):String(h).trim();
     const kind=/^\d{4}$/.test(label)?"year":/^ltm$/i.test(label)?"ltm":(/прогноз|п$|^п\d{4}/i.test(label))?"fc":"q";
