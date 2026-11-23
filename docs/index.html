@@ -588,7 +588,7 @@ function compSummary(secId,c){
   let dps4=null; if(c.divLast4q&&dRow){ const qi=p.cols.map((x,i)=>i).filter(i=>p.cols[i].kind==="q").slice(-4); const v=qi.map(i=>dRow.vals[i]).filter(isNum); if(v.length) dps4=v.reduce((a,b)=>a+b,0); }
   const price=L(/^цена акции/i), dps=dpsFc??dps4??L(/^дивиденды на акцию/i), cap=L(/^капитализация/i), np=L(/^чистая прибыль/i), eq=L(/^капитал(,|$)/i);
   const pb=mval(p,/^p\/bv?$/);
-  const out={p, price, cap, rev:L(/^выручка/i), ebitda:L(/^(скорр\.?\s*)?ebitda/i), np, dy4:dps4!=null,
+  const out={p, price, cap, rev:L(/^(выручка|структура выручки)/i), ebitda:L(/^(скорр\.?\s*)?ebitda/i), np, dy4:dps4!=null,
     pe:mval(p,/^p\/e$/), evE:mval(p,/^ev\/ebitda$/), debtE:mval(p,/^долг\/ebitda$/), pb,
     pbOk: isNum(pb)&&pb>0&&pb<5,
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
@@ -811,7 +811,7 @@ function compChart(p,kind,unit="млрд ₽"){
         const pv=j>0?r.vals[yi[j-1]]:null; return isNum(pv)&&pv>0&&p.cols[yi[j-1]].kind==="year"? v/pv-1 : null; }); };
     const GC=["#1F5CFF","#0F2042","#64748B"];
     const gl=(l,d,i)=>({type:"line",label:l,data:d,yAxisID:"y1",borderColor:GC[i],backgroundColor:"#FFFFFF",borderWidth:1.5,borderDash:i===2?[4,3]:[],pointRadius:2.5,pointBorderWidth:1.5,tension:.25,spanGaps:true,_g:true,order:-1});
-    const reR=/^выручка/i, reE=/^(скорр\.?\s*)?ebitda/i, reN=/^чистая прибыль/i;
+    const reR=/^(выручка|структура выручки)/i, reE=/^(скорр\.?\s*)?ebitda/i, reN=/^чистая прибыль/i;
     const cfg=base("bar",[bar("Выручка",ser(reR),0),bar("EBITDA",ser(reE),1),bar("Чистая прибыль",ser(reN),2),
       gl("Рост выручки",gr(reR),0),gl("Рост EBITDA",gr(reE),1),gl("Рост прибыли",gr(reN),2)],false,true);
     // столбцы — в нижней части, линии роста — в верхней, чтобы не налезали
