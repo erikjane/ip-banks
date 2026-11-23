@@ -53,7 +53,12 @@ const EXCLUDE_FROM_AVG = ["МКБ"];
 // Небанковские отрасли: какие листы — какие компании (ticker для подписи, review — ссылка на разбор в клубе)
 const SECTORS = {
   medicine:{name:"Медицина", companies:[
-    {id:"mdmg", short:"Мать и дитя", sheet:"Мать и дитя", ticker:"MDMG"},
+    {id:"mdmg", short:"Мать и дитя", sheet:"Мать и дитя", ticker:"MDMG", extraCharts:[
+      {id:"mdmgVisits", t:"Посещения и средний чек · амбулатория"},
+      {id:"mdmgBirths", t:"Количество и средний чек · роды"},
+      {id:"mdmgIvf", t:"Количество и средний чек · ЭКО"},
+      {id:"mdmgBeds", t:"Количество и средний чек · койко-дни"}
+    ], defaultCharts:["fin","mdmgVisits"]},
     {id:"gemc", short:"ЕМС", sheet:"ЕМС в евро", ticker:"GEMC", unit:"млн €"}]},
   telecom:{name:"Телекомы", companies:[
     {id:"rtkm", short:"Ростелеком", sheet:"Ростелеком", ticker:"RTKM", review:""},
@@ -560,7 +565,46 @@ function barsGrowth(p,idx,specs){
         const cand=[pt.y-7,pt.y+15,pt.y-18,pt.y+26,pt.y-29,pt.y+37]; let y=cand.find(c=>!hit(c)); if(y==null) y=cand[0];
         used.push({x:pt.x,y,w}); ctx.fillStyle=d.borderColor; ctx.strokeText(t,pt.x,y); ctx.fillText(t,pt.x,y); }); }); ctx.restore(); }}]};
 }
+function mdmgActivityChart(p, kind){
+  const specs = {
+    mdmgVisits: ["Амбулаторные посещения", "Амбулаторные посещения"],
+    mdmgBirths: ["Количество родов", "Роды"],
+    mdmgIvf: ["Количество ЭКО", "Эко"],
+    mdmgBeds: ["Койко-дни", "Койко-дни"]
+  };
+  const [volumeLabel, checkLabel] = specs[kind];
+  const rows = p.blocks.flatMap(block => block.rows);
+  const checkStart = rows.findIndex(row => /^средний чек/i.test(row.label));
+  const volume = rows.slice(0, checkStart).find(row => norm(row.label) === norm(volumeLabel));
+  const check = rows.slice(checkStart + 1).find(row => norm(row.label) === norm(checkLabel));
+  const periods = p.cols.map((column, index) => ({column, index}))
+    .filter(({column, index}) => column.kind === "year" && isNum(volume?.vals[index]) && isNum(check?.vals[index]));
+  return {
+    type: "bar",
+    data: {
+      labels: periods.map(({column}) => column.label),
+      datasets: [
+        {label: volumeLabel, data: periods.map(({index}) => volume.vals[index]), backgroundColor: "#2563EB", borderRadius: 4, yAxisID: "y", order: 2},
+        {type: "line", label: "Средний чек", data: periods.map(({index}) => check.vals[index]), borderColor: "#4A9B18", backgroundColor: "#4A9B18", yAxisID: "y1", order: 1}
+      ]
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: {mode: "index", intersect: false},
+      plugins: {legend: {position: "bottom"}, tooltip: {callbacks: {
+        label: item => item.dataset.label + ": " + nf(item.datasetIndex ? 2 : 0).format(item.parsed.y) + (item.datasetIndex ? " тыс. ₽" : "")
+      }}},
+      scales: {
+        x: {grid: {display: false}},
+        y: {beginAtZero: true, title: {display: true, text: "Количество"}},
+        y1: {beginAtZero: true, position: "right", grid: {drawOnChartArea: false}, title: {display: true, text: "Средний чек, тыс. ₽"}}
+      }
+    }
+  };
+}
+
 function compChart(p,kind,unit="млрд ₽"){
+  if(kind.startsWith("mdmg")) return mdmgActivityChart(p,kind);
   if(kind==="lpY"||kind==="lpQ"){ const idx=p.cols.map((c,i)=>i).filter(i=>kind==="lpY"?(p.cols[i].kind==="year"||p.cols[i].kind==="ltm"):p.cols[i].kind==="q");
     return barsGrowth(p,idx,[{label:"Новый бизнес",re:/^новый бизнес/i,color:"#1F5CFF",line:"#1F5CFF"},{label:"Лизинговый портфель",re:/^лизинговый портфель/i,color:"#0F2042",line:"#0F2042",dash:[4,3]}]); }
   const yi=p.cols.map((c,i)=>i).filter(i=>p.cols[i].kind==="year"||p.cols[i].kind==="ltm"), labels=yi.map(i=>p.cols[i].label);
