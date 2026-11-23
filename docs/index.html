@@ -588,6 +588,7 @@ function compSummary(secId,c){
   const g=D.sectors[secId]?.sheets?.[c.sheet]; if(!g) return null;
   const p=parseCompany(g), L=re=>ltm(p,findRow(p,re));
   p.isMedicine=secId==="medicine";
+  if(secId==="medicine" && c.id==="mdmg") p.activityGrid=g;
   // дивиденд: LTM, либо прогнозный (столбец «Прогноз…»), если для компании так задано
   const dRow=findRow(p,/^дивиденды на акцию/i), fci=p.cols.findIndex(x=>x.kind==="fc");
   const dpsFc=c.divForecast&&dRow&&fci>=0&&isNum(dRow.vals[fci])? dRow.vals[fci] : null;
@@ -807,19 +808,19 @@ function mdmgActivityChart(p, kind){
     mdmgBeds: ["Койко-дни", "Койко-дни"]
   };
   const [volumeLabel, checkLabel] = specs[kind];
-  const rows = p.blocks.flatMap(block => block.rows);
-  const checkStart = rows.findIndex(row => /^средний чек/i.test(row.label));
-  const volume = rows.slice(0, checkStart).find(row => norm(row.label) === norm(volumeLabel));
-  const check = rows.slice(checkStart + 1).find(row => norm(row.label) === norm(checkLabel));
-  const periods = p.cols.map((column, index) => ({column, index}))
-    .filter(({column, index}) => column.kind === "year" && isNum(volume?.vals[index]) && isNum(check?.vals[index]));
+  const rows = p.activityGrid || [];
+  const checkStart = rows.findIndex(row => /^средний чек/i.test(String(row[0])));
+  const volume = rows.slice(0, checkStart).find(row => norm(row[0]) === norm(volumeLabel));
+  const check = rows.slice(checkStart + 1).find(row => norm(row[0]) === norm(checkLabel));
+  const periods = p.cols.map(column => ({column, index: column.c}))
+    .filter(({column, index}) => column.kind === "year" && isNum(volume?.[index]) && isNum(check?.[index]));
   return {
     type: "bar",
     data: {
       labels: periods.map(({column}) => column.label),
       datasets: [
-        {label: volumeLabel, data: periods.map(({index}) => volume.vals[index]), backgroundColor: "#2563EB", borderRadius: 4, yAxisID: "y", order: 2},
-        {type: "line", label: "Средний чек", data: periods.map(({index}) => check.vals[index]), borderColor: "#4A9B18", backgroundColor: "#4A9B18", yAxisID: "y1", order: 1}
+        {label: volumeLabel, data: periods.map(({index}) => volume[index]), backgroundColor: "#2563EB", borderRadius: 4, yAxisID: "y", order: 2},
+        {type: "line", label: "Средний чек", data: periods.map(({index}) => check[index]), borderColor: "#4A9B18", backgroundColor: "#4A9B18", yAxisID: "y1", order: 1}
       ]
     },
     options: {
