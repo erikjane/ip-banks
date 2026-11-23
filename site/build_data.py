@@ -155,6 +155,13 @@ def build_sector(src, sector):
                 if forecast and label == "EV/EBITDA":
                     values = [v if v in ("LTM", "П2026") else "" for v in row[1:width]]
                 clean.append([label] + values)
+            for i, row in enumerate(rows[:-2]):
+                if "ИТОГОВАЯ СС" in row:
+                    start = row.index("ИТОГОВАЯ СС")
+                    totals = rows[i+2][start:start+4]
+                    if len(totals) == 4 and isinstance(totals[-1], (int, float)):
+                        clean.append(["Итоговая целевая цена", totals[-1]])
+                    break
             grids[name] = clean
     return {"id": sector["id"], "sheets": grids}
 
