@@ -360,6 +360,7 @@ function compSummary(secId,c){
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
     mE:L(/^рентабельность ebitda/i), mOp:L(/^рентабельность операционной/i), mNet:L(/^рентабельность чистой/i),
     dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, dyFc: dpsFc!=null, dps, final:p.final, ...avgFinal(p.final,price)};
+  if(secId==="medicine"){ const target=g.find(row=>row[0]==="Итоговая целевая цена"); if(target && isNum(target[1])){out.fair=target[1];out.up=price>0?out.fair/price-1:null;} }
   if(c.fair){ const f=fairFromSheet(g,c.fair); out.fairSpec=f; out.fair=f?f.fair:null; out.up=f&&isNum(price)&&price>0?f.fair/price-1:null; out.nav=navTable(g); }
   const roeM=mval(p,/^roe$/); if(isNum(roeM)) out.roe=roeM;
   return out;
@@ -611,6 +612,7 @@ function compChart(p,kind,unit="млрд ₽"){
 function renderCompany(secId,co){
   const S=SECTORS[secId], s=compSummary(secId,co), app=document.getElementById("ipa-app");
   if(!s){app.innerHTML=`<p>Лист «${esc(co.sheet)}» не найден.</p>`;return}
+  if(co.id==="mdmg"){for(const col of s.p.cols){if(col.kind==="fc" && col.label.length>25) col.label=col.label.includes("верхней")?"2026П · верхняя граница":"2026П · посещения";} }
   const p=s.p, club=co.review||CLUB_URL||"#"; let mode="year"; const fin=S.kind==="fin", CH=(co.extraCharts||[]).concat(fin?COMP_CHARTS_FIN:COMP_CHARTS), defs=co.defaultCharts||(fin?["np","cash"]:["fin","mrg"]);
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / <a href="#${secId}">${esc(S.name)}</a> / ${esc(co.short)}</div>
     <h1>${esc(co.short)} <span class="go" style="font-size:14px;vertical-align:middle">${co.ticker}</span></h1>
@@ -624,7 +626,7 @@ function renderCompany(secId,co){
       ${fin?`<div class="tile"><span>P/BV LTM</span><b>${fmt(s.pb)}</b></div><div class="tile"><span>ROE LTM</span><b>${fmt(s.roe,"pct")}</b></div>`
          :`<div class="tile"><span>EV/EBITDA LTM</span><b>${fmt(s.evE)}</b></div><div class="tile"><span>Долг/EBITDA LTM</span><b>${fmt(s.debtE)}</b></div>`}
       <div class="tile"><span>${s.dyFc?"Див. доходность (прогноз)":"Див. доходность 12 мес"}</span><b>${fmt(s.dy,"pct")}</b>${s.dy4?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">выплаты за 4 квартала: ${rub(s.dps)}</small>`:""}${s.dyFc?`<small style="display:block;color:var(--muted);font-size:12px;margin-top:4px">дивиденд ${rub(s.dps)}${(()=>{const m=String(p.cols.find(x=>x.kind==="fc")?.label||"").match(/(\d{2,4})/); return m?" за "+(m[1].length===2?"20"+m[1]:m[1])+" г.":""})()}</small>`:""}</div>
-      <div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
+      ${secId==="medicine"?`<div class="tile"><span>Целевая цена</span><b>${rub(s.fair)}</b></div>`:""}<div class="tile hl"><span>Апсайд к справедливой</span><b>${isNum(s.up)&&s.up>-0.999?(s.up>=0?"+":"")+nf(1).format(s.up*100)+"%":"н/д"}</b><a href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     </div>
     <div class="card clubbar"><div><b style="font-size:16px">Разбор ${esc(co.short)} в клубе Инвест Привет+</b><div class="note" style="margin:4px 0 0">Почему такая справедливая стоимость, риски и что делать с акцией.</div></div><a class="btn lime" href="${club}" target="_blank" rel="noopener">Обзор в Клубе →</a></div>
     <h2>Динамика</h2>
@@ -632,7 +634,7 @@ function renderCompany(secId,co){
     <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="ipa-tg"><button data-m="year" class="on">Годы</button><button data-m="q">Кварталы</button><button data-m="all">Все</button></div></div>
     <div id="ipa-fin"></div><h2>Мультипликаторы</h2><div id="ipa-mult"></div>
     ${p.fc.length||!s.nav?`<h2>Мультипликаторный прогноз</h2>${co.fcNote?`<div class="card notebar"><b>Почему только EV/EBITDA.</b> ${esc(co.fcNote)}</div>`:""}${fcHTML(co.fcOnly?{...p,fc:p.fc.filter(b=>co.fcOnly.includes(norm(b.method)))}:p,s.price,s)}`:""}${s.nav?navHTML(s):""}`;
-  const draw=()=>{document.getElementById("ipa-fin").innerHTML=tableHTML(p,mode);document.getElementById("ipa-mult").innerHTML=multHTML(p,mode)}; draw();
+  const draw=()=>{document.getElementById("ipa-fin").innerHTML=tableHTML(p,mode);document.getElementById("ipa-mult").innerHTML=multHTML(p,mode);if(co.id==="mdmg")app.querySelectorAll("td:first-child,th").forEach(el=>{el.style.whiteSpace="normal";el.style.maxWidth=el.cellIndex===0?"220px":"100px";});}; draw();
   document.getElementById("ipa-tg").onclick=e=>{const x=e.target.closest("button"); if(!x) return; mode=x.dataset.m; [...e.currentTarget.children].forEach(y=>y.classList.toggle("on",y===x)); draw();};
   if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
     [0,1].forEach(k=>{const sel=document.getElementById("ipa-sel"+k); let ch=null; const go=()=>{if(ch){ch.destroy();charts.splice(charts.indexOf(ch),1)} ch=new Chart(document.getElementById("ipa-c"+k),compChart(p,sel.value,co.unit)); charts.push(ch)}; sel.onchange=go; go();}); }
