@@ -136,34 +136,7 @@ def pick_sheets(all_names, rule):
 def build_sector(src, sector):
     sid = sector["spreadsheet_id"]
     names = pick_sheets(src.sheet_names(sid), sector.get("sheets", {}))
-    grids = src.grids(sid, names)
-    if sector.get("metrics_only"):
-        for name, rows in grids.items():
-            if not rows:
-                continue
-            header = rows[0]
-            clean = [header]
-            forecast = False
-            for row in rows[1:]:
-                label = row[0] if row else None
-                if not isinstance(label, str) or "комментар" in label.lower():
-                    continue
-                if label.strip() == "Мультипликаторный прогноз":
-                    forecast = True
-                width = 4 if forecast else len(header)
-                values = [v if isinstance(v, (int, float)) else "" for v in row[1:width]]
-                if forecast and label == "EV/EBITDA":
-                    values = [v if v in ("LTM", "П2026") else "" for v in row[1:width]]
-                clean.append([label] + values)
-            for i, row in enumerate(rows[:-2]):
-                if "ИТОГОВАЯ СС" in row:
-                    start = row.index("ИТОГОВАЯ СС")
-                    totals = rows[i+2][start:start+4]
-                    if len(totals) == 4 and isinstance(totals[-1], (int, float)):
-                        clean.append(["Итоговая целевая цена", totals[-1]])
-                    break
-            grids[name] = clean
-    return {"id": sector["id"], "sheets": grids}
+    return {"id": sector["id"], "sheets": src.grids(sid, names)}
 
 
 def build_rsbu(cfg, local_dir=None):
