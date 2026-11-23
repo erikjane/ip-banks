@@ -594,7 +594,7 @@ function compSummary(secId,c){
     roe: isNum(np)&&isNum(eq)&&eq>0&&isNum(pb)&&pb<5 ? np/eq : null,
     mE:L(/^рентабельность ebitda/i), mOp:L(/^рентабельность операционной/i), mNet:L(/^рентабельность чистой/i),
     dy: isNum(dps)&&isNum(price)&&price>0? dps/price : null, dyFc: dpsFc!=null, dps, final:p.final, ...avgFinal(p.final,price)};
-  if(secId==="medicine"){ const target=g.find(row=>row[0]==="Итоговая целевая цена"); if(target && isNum(target[1])){out.fair=target[1];out.up=price>0?out.fair/price-1:null;} }
+  if(secId==="medicine"){ const shares=L(/^количество акций/i); if(isNum(shares)&&isNum(price))out.cap=price*shares/1000; const target=g.find(row=>row[0]==="Итоговая целевая цена"); if(target && isNum(target[1])){out.fair=target[1];out.up=price>0?out.fair/price-1:null;} }
   if(c.fair){ const f=fairFromSheet(g,c.fair); out.fairSpec=f; out.fair=f?f.fair:null; out.up=f&&isNum(price)&&price>0?f.fair/price-1:null; out.nav=navTable(g); }
   const roeM=mval(p,/^roe$/); if(isNum(roeM)) out.roe=roeM;
   return out;
