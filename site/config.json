@@ -121,16 +121,7 @@
   },
   {
    "id": "medicine",
-   "name": "Медицина",
-   "active": true,
-   "spreadsheet_id": "1kMqCKE6dkPxM5_FxvNgSppoP1QGteWuqgqhfcamuiBo",
-   "sheets": {
-    "include": [
-     "Мать и дитя",
-     "ЕМС в евро"
-    ]
-   },
-   "metrics_only": true
+   "name": "Медицина"
   },
   {
    "id": "industry",
