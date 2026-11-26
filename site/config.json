@@ -89,7 +89,12 @@
   },
   {
    "id": "fertilizers",
-   "name": "Удобрения"
+   "name": "Удобрения",
+   "active": true,
+   "spreadsheet_id": "1Rm84_VAVDrbMbGzUCfU7mSHEyym-5_lIpy0iRSH5tNs",
+   "sheets": {
+    "include": ["Фосагро", "Акрон", "Куйбышевазот"]
+   }
   },
   {
    "id": "it",

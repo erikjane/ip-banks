@@ -136,7 +136,34 @@ def pick_sheets(all_names, rule):
 def build_sector(src, sector):
     sid = sector["spreadsheet_id"]
     names = pick_sheets(src.sheet_names(sid), sector.get("sheets", {}))
-    return {"id": sector["id"], "sheets": src.grids(sid, names)}
+    grids = src.grids(sid, names)
+    if sector["id"] == "fertilizers":
+        if any(not grids.get(name) for name in sector["sheets"]["include"]):
+            raise ValueError("Missing fertilizer company sheets")
+        grids = {name: fertilizer_grid(rows) for name, rows in grids.items()}
+    return {"id": sector["id"], "sheets": grids}
+
+
+def fertilizer_grid(rows):
+    """Publish financial values, period labels and valuation scenarios."""
+    header = rows[0]
+    last_col = next(c for c, value in enumerate(header) if str(value).lower().startswith("прогноз"))
+    forecast_row = next(i for i, row in enumerate(rows) if row and row[0] == "Мультипликаторный прогноз")
+    total_row = next(i for i, row in enumerate(rows) if "ИТОГОВАЯ СС" in row)
+    total_col = rows[total_row].index("ИТОГОВАЯ СС")
+    clean = [header[:last_col + 1]]
+    for i, row in enumerate(rows[1:total_row + 4], 1):
+        if i < forecast_row:
+            label = row[0] if row else ""
+            clean.append([label, *(v if isinstance(v, (int, float)) else "" for v in row[1:last_col + 1])] if label else [])
+            continue
+        scenario = row[:3]
+        if total_row <= i <= total_row + 3:
+            start = total_col - 1 if i == total_row + 3 else total_col
+            end = total_col + 2
+            scenario += [""] * (start - len(scenario)) + row[start:end]
+        clean.append(scenario)
+    return trim_grid(clean)
 
 
 def build_rsbu(cfg, local_dir=None):

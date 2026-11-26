@@ -43,7 +43,7 @@
   {
    "id": "fertilizers",
    "name": "Удобрения",
-   "active": false
+   "active": true
   },
   {
    "id": "it",
