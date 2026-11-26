@@ -288,7 +288,7 @@ const EXCLUDE_FROM_AVG = ["МКБ"];
 const SECTORS = {
   industry:{name:"Промышленность", companies:[
     {id:"trmk", short:"ТМК", sheet:"ТМК", ticker:"TRMK"},
-    {id:"svav", short:"Соллерс", sheet:"Соллерс", ticker:"SVAV"},
+    {id:"svav", short:"Соллерс", sheet:"Соллерс", ticker:"SVAV", targetNote:"Значительный разброс целевых цен обусловлен высокой базой 2п2025 года и ожидаемым снижением финансовых результатов во 2п2026 года. Компания отчитывается по МСФО раз в полгода, поэтому при расчёте по LTM в оценку попадают высокие показатели, тогда как прогноз на 2026 год учитывает ухудшение финансовых результатов."},
     {id:"sgzh", short:"Сегежа", sheet:"Сегежа", ticker:"SGZH", oibda:true, noAvg:true}]},
   pharma:{name:"Фарма", companies:[
     {id:"ozph", short:"Озон Фармацевтика", sheet:"Озон Фармацевтика", ticker:"OZPH"},
@@ -649,9 +649,13 @@ function compSummary(secId,c){
   }
   if(c.fair){ const f=fairFromSheet(g,c.fair); out.fairSpec=f; out.fair=f?f.fair:null; out.up=f&&isNum(price)&&price>0?f.fair/price-1:null; out.nav=navTable(g); }
   if(secId==="industry"){
-    if(p.final) p.final.upside=p.final.values.map(value=>isNum(value)&&value>0&&price>0?value/price-1:null);
+    p.isIndustry=true;
+    if(p.final){
+      p.final.values=p.final.values.map(value=>isNum(value)?Math.max(0,value):value);
+      p.final.upside=p.final.values.map(value=>isNum(value)&&price>0?value/price-1:null);
+    }
     const forecastTarget=p.final?.values[1];
-    out.fair=isNum(forecastTarget)&&forecastTarget>0?forecastTarget:null;
+    out.fair=isNum(forecastTarget)?forecastTarget:null;
     out.up=out.fair!=null&&price>0?out.fair/price-1:null;
     if(c.oibda){
       p.oibda=true;
@@ -997,7 +1001,7 @@ function renderCompany(secId,co){
     <div class="charts">${[0,1].map(k=>`<div class="card"><select class="csel" id="sel${k}">${CH.map(c=>`<option value="${c.id}"${c.id===defs[k]?" selected":""}>${co.unit?c.t.replace("млрд ₽",co.unit):c.t}</option>`).join("")}</select><div class="chart-wrap"><canvas id="c${k}"></canvas></div></div>`).join("")}</div>
     <div class="sec-head"><h2>Финансовые показатели</h2><div class="toggle" id="tg"><button data-m="year" class="on">Годы</button><button data-m="q">${co.preferred||secId==="industry"?"Кварталы / полугодия":"Кварталы"}</button><button data-m="all">Все</button></div></div>
     <div id="fin"></div><h2>Мультипликаторы</h2><div id="mult"></div>
-    ${!co.unlisted&&(p.fc.length||!s.nav)?`<h2>Мультипликаторный прогноз</h2>${co.fcNote?`<div class="card notebar"><b>Почему только EV/EBITDA.</b> ${esc(co.fcNote)}</div>`:""}${fcHTML(co.fcOnly?{...p,fc:p.fc.filter(b=>co.fcOnly.includes(norm(b.method)))}:p,s.price,s)}`:""}${s.nav?navHTML(s):""}`;
+    ${!co.unlisted&&(p.fc.length||!s.nav)?`<h2>Мультипликаторный прогноз</h2>${co.fcNote?`<div class="card notebar"><b>Почему только EV/EBITDA.</b> ${esc(co.fcNote)}</div>`:""}${fcHTML(co.fcOnly?{...p,fc:p.fc.filter(b=>co.fcOnly.includes(norm(b.method)))}:p,s.price,s)}${co.targetNote?`<p class="note">${esc(co.targetNote)}</p>`:""}`:""}${s.nav?navHTML(s):""}`;
   const draw=()=>{document.getElementById("fin").innerHTML=tableHTML(p,mode);document.getElementById("mult").innerHTML=multHTML(p,mode);if(co.id==="mdmg")app.querySelectorAll("td:first-child,th").forEach(el=>{el.style.whiteSpace="normal";el.style.maxWidth=el.cellIndex===0?"220px":"100px";});}; draw();
   document.getElementById("tg").onclick=e=>{const x=e.target.closest("button"); if(!x) return; mode=x.dataset.m; [...e.currentTarget.children].forEach(y=>y.classList.toggle("on",y===x)); draw();};
   if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569";
@@ -1201,6 +1205,7 @@ function navHTML(s){
 }
 function fcHTML(p,price,avg){
   if(!p.fc.length) return `<p class="note">На листе нет блока «Мультипликаторный прогноз».</p>`;
+  const forecastUp=v=>p.isIndustry&&v===-1?`<span class="badge down">−100%</span>`:pctBadge(v);
   const nm={"p/e":"По P/E (цена / прибыль)","ev/ebitda":"По EV/EBITDA","p/b":"По P/B (цена / капитал)"};
   const cards=p.fc.map(b=>{const cnt={};
     const ml={}; b.rows.forEach(r=>{const m=r.label.match(p.pharma||p.isMedicine?/^([123])\.?\s*мультипликатор\s*(.*)$/i:/^([12])\s*мультипликатор\s*(.*)$/i); if(m) ml[m[1]]=m[2].trim();});
@@ -1210,16 +1215,16 @@ function fcHTML(p,price,avg){
       if(m){const suf=m[2]||""; cnt[suf]=(cnt[suf]||0)+1; l=`Целевая цена ${suf} · ${by(cnt[suf])}`;}
       const up=/^апсайд/i.test(r.label), tp=/^целевая цена/i.test(r.label);
       const nd=/чистого долга|чистый долг/i.test(r.label);
-      const cell=v=>nd&&isNum(v)&&v<0?`<span class="goodneg">${fmt(v)}</span>`:up?pctBadge(v):tp?(isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
+      const cell=v=>nd&&isNum(v)&&v<0?`<span class="goodneg">${fmt(v)}</span>`:up?forecastUp(v):tp?(p.isIndustry&&isNum(v)?`<b>${rub(Math.max(0,v))}</b>`:isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
       const values=[r.v1,r.v2,...(b.h3?[r.v3]:[]),...(b.h4?[r.v4]:[])];
       const prev=b.rows[index-1];
       const keys=["v1","v2","v3","v4"];
-      return `<tr><td>${esc(l)}</td>${values.map((value,i)=>{const target=prev?.[keys[i]];return `<td>${cell((p.financeId||p.pharma)&&up&&isNum(price)&&price>0&&/^целевая цена/i.test(prev?.label||"")&&isNum(target)?target/price-1:value)}</td>`;}).join("")}</tr>`}).join("");
+      return `<tr><td>${esc(l)}</td>${values.map((value,i)=>{const target=prev?.[keys[i]];return `<td>${cell((p.financeId||p.pharma||p.isIndustry)&&up&&isNum(price)&&price>0&&/^целевая цена/i.test(prev?.label||"")&&isNum(target)?(p.isIndustry?Math.max(0,target):target)/price-1:value)}</td>`;}).join("")}</tr>`}).join("");
     return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»${b.h3?` · «${esc(b.h3)}»`:""}${b.h4?` · «${esc(b.h4)}»`:""}</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th>${periodTH(p,b.h2,null)}${b.h3?periodTH(p,b.h3,null):""}${b.h4?`<th>${esc(b.h4)}</th>`:""}</tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
   if(avg&&avg.fairSpec!==undefined){ if(avg.nav) return `<div class="fc">${cards}</div>`; return `<div class="fc">${cards}</div>${fairBlock(avg,price)}`; }
-  const fin=(f||p.pharma)&&avg&&isNum(avg.fair)?`<div class="final"><div class="big"><span class="lbl">${p.pharma?"Итоговая целевая цена":`Итоговая справедливая стоимость · среднее ${f.labels.map((l,i)=>isNum(f.values[i])&&f.values[i]>0?`${esc(l)}: ${rub(f.values[i])}`:"").filter(Boolean).join(" и ")}`}</span><b>${rub(avg.fair)}</b>${pctBadge(avg.up)}</div><div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`
-    : f?`<div class="final">${f.labels.map((l,i)=>`<div class="big"><span class="lbl">Итоговая справедливая стоимость · ${esc(l)}</span><b>${isNum(f.values[i])&&f.values[i]>0?rub(f.values[i]):"н/д"}</b>${pctBadge(f.upside[i])}</div>`).join("")}<div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`:"";
+  const fin=!p.isIndustry&&(f||p.pharma)&&avg&&isNum(avg.fair)?`<div class="final"><div class="big"><span class="lbl">${p.pharma?"Итоговая целевая цена":`Итоговая справедливая стоимость · среднее ${f.labels.map((l,i)=>isNum(f.values[i])&&f.values[i]>0?`${esc(l)}: ${rub(f.values[i])}`:"").filter(Boolean).join(" и ")}`}</span><b>${rub(avg.fair)}</b>${pctBadge(avg.up)}</div><div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`
+    : f?`<div class="final">${f.labels.map((l,i)=>`<div class="big"><span class="lbl">Итоговая справедливая стоимость · ${esc(l)}</span><b>${isNum(f.values[i])&&(p.isIndustry||f.values[i]>0)?rub(f.values[i]):"н/д"}</b>${forecastUp(f.upside[i])}</div>`).join("")}<div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`:"";
   return `<div class="fc">${cards}</div>${fin}`;
 }
 const BANK_CHARTS=[
