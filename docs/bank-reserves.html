@@ -1,0 +1,538 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Резервы и проблемные кредиты</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --surface: #fbfaf6;
+    --surface-2: #f2efe7;
+    --surface-3: #eae6da;
+    --ink: #17140f;
+    --ink-soft: #5c5648;
+    --ink-mute: #8b8474;
+    --line: #e2ddd0;
+    --line-strong: #cfc8b6;
+    --blue: #2a6fc9;
+    --blue-soft: #dbe8fa;
+    --orange: #d9622c;
+    --orange-soft: #fbe3d5;
+    --aqua: #17916a;
+    --aqua-soft: #d8f0e6;
+    --aqua-2: #7fbfa8;
+    --grey: #78715f;
+    --grey-soft: #e7e2d3;
+    --red: #b43f3f;
+    --red-soft: #f0d9d3;
+    --shadow: 0 1px 2px rgba(23,20,15,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface: #171613;
+      --surface-2: #1e1c18;
+      --surface-3: #29261f;
+      --ink: #f3efe6;
+      --ink-soft: #c9c2b1;
+      --ink-mute: #8f8975;
+      --line: #343026;
+      --line-strong: #443f32;
+      --blue: #5b9ae8;
+      --blue-soft: #203552;
+      --orange: #ef8a56;
+      --orange-soft: #4a2e1c;
+      --aqua: #4fcaa0;
+      --aqua-soft: #163a2d;
+      --aqua-2: #3f6e5c;
+      --grey: #a49c86;
+      --grey-soft: #38341f;
+      --red: #e08a7c;
+      --red-soft: #3c241f;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface: #171613;
+    --surface-2: #1e1c18;
+    --surface-3: #29261f;
+    --ink: #f3efe6;
+    --ink-soft: #c9c2b1;
+    --ink-mute: #8f8975;
+    --line: #343026;
+    --line-strong: #443f32;
+    --blue: #5b9ae8;
+    --blue-soft: #203552;
+    --orange: #ef8a56;
+    --orange-soft: #4a2e1c;
+    --aqua: #4fcaa0;
+    --aqua-soft: #163a2d;
+    --aqua-2: #3f6e5c;
+    --grey: #a49c86;
+    --grey-soft: #38341f;
+    --red: #e08a7c;
+    --red-soft: #3c241f;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--surface);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    padding: max(20px, env(safe-area-inset-top,0px)) 0 max(28px, env(safe-area-inset-bottom,0px));
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 20px;}
+  h1{
+    font-family:"Fraunces", Georgia, serif;
+    font-weight:600;
+    font-size:clamp(26px,4.2vw,36px);
+    line-height:1.12;
+    margin:0 0 8px;
+    text-wrap:balance;
+    letter-spacing:-.01em;
+  }
+  .sub{color:var(--ink-soft); font-size:15px; line-height:1.5; max-width:62ch; margin:0 0 4px;}
+  .src{color:var(--ink-mute); font-size:12.5px; margin:0 0 20px;}
+  .toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+  .pill{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:999px; padding:6px 13px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .pill b{color:var(--ink); font-weight:600;}
+  button.toggle{
+    font-family:inherit; font-size:13px; font-weight:600; color:var(--ink);
+    background:var(--surface-2); border:1px solid var(--line-strong);
+    border-radius:8px; padding:8px 14px; cursor:pointer;
+  }
+  button.toggle:hover{background:var(--surface-3);}
+  button.toggle:focus-visible, a:focus-visible, .colbtn:focus-visible{outline:2px solid var(--blue); outline-offset:2px;}
+
+  .panel{
+    border-left: 3px solid var(--accent, var(--blue));
+    background:var(--surface-2);
+    border-radius:4px 10px 10px 4px;
+    padding:18px 18px 10px;
+    margin-bottom:16px;
+  }
+  .panel.callout{
+    border-left-color: var(--red);
+    background: var(--red-soft);
+    padding:14px 16px;
+    font-size:13px;
+    line-height:1.55;
+    color: var(--ink);
+  }
+  .panel.callout strong{color:var(--ink);}
+  .panel-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:2px;}
+  .panel-title{font-size:15.5px; font-weight:600;}
+  .panel-note{font-size:12px; color:var(--ink-mute);}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin:2px 0 10px;}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:11px; height:11px; border-radius:3px; display:inline-block;}
+  .swatch.line{width:14px;height:3px;border-radius:2px;}
+  .swatch.dash{background:repeating-linear-gradient(90deg, var(--sc) 0 5px, transparent 5px 8px); width:16px; height:2px;}
+
+  svg{display:block; width:100%; height:auto; overflow:visible;}
+  .gridline{stroke:var(--line); stroke-width:1;}
+  .zeroline{stroke:var(--line-strong); stroke-width:1.2;}
+  .axislabel{fill:var(--ink-mute); font-size:10.3px; font-family:"IBM Plex Sans", sans-serif;}
+  .qlabel{fill:var(--ink-soft); font-size:10.3px; font-family:"IBM Plex Sans", sans-serif; text-anchor:middle;}
+  .qlabel.small{font-size:8.6px;}
+  .valuelabel{fill:var(--ink); font-size:10.3px; font-weight:600; font-variant-numeric:tabular-nums; text-anchor:middle;}
+  .hitcol{fill:transparent; cursor:crosshair;}
+  .guide{stroke:var(--ink-mute); stroke-width:1; stroke-dasharray:2 3; opacity:0; pointer-events:none;}
+  .nodata{fill:var(--ink-mute); font-size:10.5px; font-style:italic;}
+
+  .tooltip{
+    position:absolute; pointer-events:none; opacity:0; transition:opacity .08s;
+    background:var(--ink); color:var(--surface);
+    font-size:12px; line-height:1.45; padding:7px 10px; border-radius:6px;
+    transform:translate(-50%,-100%); white-space:nowrap; z-index:5;
+    box-shadow:0 4px 14px rgba(0,0,0,.18);
+  }
+  .tooltip b{font-variant-numeric:tabular-nums;}
+  .chartbox{position:relative;}
+
+  table.datatable{width:100%; border-collapse:collapse; font-size:12.5px; margin:6px 0 18px;}
+  table.datatable caption{caption-side:top; text-align:left; font-size:13px; font-weight:600; margin-bottom:8px;}
+  table.datatable th, table.datatable td{
+    padding:7px 9px; text-align:right; border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  table.datatable th:first-child, table.datatable td:first-child{text-align:left; color:var(--ink-soft); font-weight:500;}
+  table.datatable thead th{color:var(--ink-mute); font-weight:600; font-size:11.5px; border-bottom:1px solid var(--line-strong);}
+  .tablewrap{overflow-x:auto; margin-bottom:8px;}
+
+  footer{margin-top:22px; padding-top:16px; border-top:1px solid var(--line);}
+  footer p{font-size:12px; color:var(--ink-mute); line-height:1.6; margin:0 0 8px;}
+  footer strong{color:var(--ink-soft);}
+  [hidden]{display:none!important;}
+</style>
+
+<div class="wrap">
+  <h1>Резервы и проблемные кредиты</h1>
+  <p class="sub">Отчисления в резервы, доля проблемных кредитов, их покрытие резервами и просроченная задолженность — кредиты юридическим лицам (ЮЛ) и физическим лицам (ФЛ), по кварталам и месяцам.</p>
+  <p class="src">Банк России: квартальные обзоры «Банковский сектор» (4 кв. 2023 — 2 кв. 2026) и ежемесячный материал «О развитии банковского сектора РФ» (сен. 2025 — окт. 2026, данные на 23.11.26)</p>
+
+  <div class="toolbar">
+    <span class="pill">Наведите курсор на график — <b>значения по периоду</b></span>
+    <button class="toggle" id="viewToggle" type="button">Показать таблицей</button>
+  </div>
+
+  <div class="panel callout">
+    <strong>Октябрь 2026 · банки прибыльны, корпоративные риски сохраняются.</strong>
+    <p>На 1 ноября корпоративный портфель достиг 106,6 трлн ₽. Доля просрочки за октябрь снизилась с 3,7% до 3,6%, у населения осталась 5,9%.</p>
+    <p>Более широкая оценка качества кредитов бизнеса доступна на 1 октября. Признаки проблем были у 13,2% портфеля (13,6 трлн ₽). За сентябрь доля выросла на 0,2 п.п. Резервы вместе с качественными залогами покрывали 45%. Остальные 7,5 трлн ₽ соответствовали примерно 75% запаса капитала сверх нормативов. Фактические потери зависят от возврата долгов.</p>
+    <p>За октябрь банки заработали 311 млрд ₽ чистой прибыли (−24,7% за месяц). Отчисления в резервы достигли 221 млрд ₽ (+32%). Достаточность капитала выросла до 13,8% (+0,1 п.п., предварительно).</p>
+    <a href="https://cbr.ru/Collection/Collection/File/64547/razv_bs_26_10.pdf">Октябрьский обзор Банка России</a>
+  </div>
+
+  <div id="charts"></div>
+
+  <div id="tableview" hidden></div>
+
+  <footer>
+    <p><strong>Источник (кварталы).</strong> Банк России, квартальные аналитические обзоры «Банковский сектор». Показатели — по кредитам юридическим лицам, включая малый и средний бизнес. Доля проблемных кредитов считается по расширенному периметру: ссуды IV–V категории качества + иные проблемные кредиты + рискованные реструктуризации.</p>
+    <p>Просрочка показывает, какая часть задолженности не погашена в срок. Расширенная оценка ЦБ включает также рискованные реструктуризации и другие ссуды с признаками проблем.</p>
+    <p><strong>Уточнение.</strong> Доля проблемных кредитов за 2 кв. 2025 скорректирована до 11,2% (ранее фигурировало 10,8%); покрытие резервами и залогами за 2–3 кв. 2025 скорректировано до 54% (ранее — 52%) — по дополнительно сверенному источнику.</p>
+    <p><strong>Важно про скачок между 2 и 3 кв. 2024.</strong> Точки за 4 кв. 2023 — 2 кв. 2024 (доля 10,2% / 10,3% / 9,8%, покрытие резервами 58% / 55% / 54%) взяты из более раннего обзора ЦБ, а точки с 3 кв. 2024 — из более позднего. Один и тот же квартал в разных по времени обзорах ЦБ даёт разную долю проблемных кредитов: например, 4 кв. 2024 в обзоре, вышедшем вскоре после квартала, — 8,9%, а в более позднем — уже 10,1%. То есть видимый скачок с 9,8% (2 кв. 2024) до 10,9% (3 кв. 2024) — это не только рост за квартал, но и задним числом пересмотренная вверх оценка прошлых периодов.</p>
+    <p><strong>Пробелы в данных.</strong> Покрытие резервами и залогами (вторая линия на графике покрытия) для 4 кв. 2023 — 2 кв. 2024 не найдено — на графике эта точка пропущена, а не приравнена к нулю. Отчисления в резервы за 4 кв. 2023 — 2 кв. 2024 взяты из отдельного обзора и перепроверены: значения за 2–4 кв. 2024 совпали с ранее подтверждёнными (96 / 66 / 45 млрд ₽). Точки на конец III квартала 2026 года взяты из текста октябрьского обзора. Прочерк означает отсутствие точного значения в использованных данных.</p>
+    <p><strong>За пределами графика.</strong> Данные за 1 кв. 2022 — 3 кв. 2023 из присланных скриншотов сюда не включены: точный источник и определение показателей на этом отрезке не подтверждены. Пришлите название отчёта — дополню страницу.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var quarters = ["4 кв. 2023","1 кв. 2024","2 кв. 2024","3 кв. 2024","4 кв. 2024","1 кв. 2025","2 кв. 2025","3 кв. 2025","4 кв. 2025","1 кв. 2026","2 кв. 2026","3 кв. 2026"];
+  var qshort   = ["4к23","1к24","2к24","3к24","4к24","1к25","2к25","3к25","4к25","1к26","2к26","3к26"];
+
+  var reserves = [109, 39, 96, 66, 45, 128, 219, 269, 297, 140, 306, null]; // млрд руб
+  var share    = [10.2, 10.3, 9.8, 10.9, 10.1, 10.6, 11.2, 11.4, 11.2, 11.6, 11.8, 13.2]; // %
+  var covRes   = [58, 55, 54, 40, 41, 41, 41, 40, 38, 38, 37, null]; // % покрыто резервами
+  var covColl  = [null, null, null, 54, 55, 55, 54, 54, 51, 51, 49, 45]; // % покрыто резервами и залогами
+
+  var n = quarters.length;
+
+  // ---------- monthly overdue-debt series (new) ----------
+  var months     = ["сен. 2025","окт. 2025","ноя. 2025","дек. 2025","янв. 2026","фев. 2026","мар. 2026","апр. 2026","май 2026","июн. 2026","июл. 2026","авг. 2026","сен. 2026","окт. 2026"];
+  var monthsShort= ["сен25","окт","ноя","дек","янв26","фев","мар","апр","май","июн","июл","авг","сен26","окт26"];
+  var overdueCorp   = [3.1,3.1,3.2,3.1,3.2,3.3,3.4,3.5,3.5,3.6,3.5,3.5,3.7,3.6]; // % от портфеля, ЮЛ
+  var overdueRetail = [5.6,5.6,5.6,5.5,5.6,5.6,5.6,5.6,5.7,5.8,5.8,5.9,5.9,5.9]; // % от портфеля, розница
+  var nm = months.length;
+
+  var chartsEl = document.getElementById("charts");
+  var hoverIndex = -1;
+  var panels = [];
+
+  function fmt(v, unit){
+    if(v === null || v === undefined) return "нет данных";
+    var s = (Math.round(v*10)/10).toString().replace(".", ",");
+    return s + unit;
+  }
+
+  function makeSvg(vb){
+    var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("viewBox", vb);
+    svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+    return svg;
+  }
+  function el(tag, attrs){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for(var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // ---------- generic panel builder ----------
+  function buildPanel(opts){
+    // opts: {title, note, accentVar, legendHtml, height, yMin, yMax, yTicks(fn->[{v,label}]), render(svg,x,y),
+    //        group (hover group, default "main"), count (default n), labels (short x labels, default qshort), labelClass}
+    var group = opts.group || "main";
+    var count = opts.count || n;
+    var labels = opts.labels || qshort;
+
+    var panel = document.createElement("div");
+    panel.className = "panel";
+    panel.style.setProperty("--accent", "var(" + opts.accentVar + ")");
+
+    var head = document.createElement("div"); head.className="panel-head";
+    var t = document.createElement("div"); t.className="panel-title"; t.textContent = opts.title;
+    var note = document.createElement("div"); note.className="panel-note"; note.textContent = opts.note || "";
+    head.appendChild(t); head.appendChild(note);
+    panel.appendChild(head);
+
+    if(opts.legendHtml){
+      var lg = document.createElement("div"); lg.className="legend"; lg.innerHTML = opts.legendHtml;
+      panel.appendChild(lg);
+    }
+
+    var box = document.createElement("div"); box.className="chartbox";
+    var W = 860, H = opts.height, padL = 40, padR = 14, padT = 14, padB = 26;
+    var innerW = W - padL - padR, innerH = H - padT - padB;
+    var svg = makeSvg("0 0 " + W + " " + H);
+    svg.setAttribute("role","img");
+    svg.setAttribute("aria-label", opts.title);
+
+    function xAt(i){ return padL + (innerW / count) * (i + 0.5); }
+    function yAt(v){ return padT + innerH * (1 - (v - opts.yMin) / (opts.yMax - opts.yMin)); }
+
+    // gridlines
+    var ticks = opts.yTicks();
+    ticks.forEach(function(tk){
+      var yy = yAt(tk.v);
+      svg.appendChild(el("line", {x1:padL, x2:W-padR, y1:yy, y2:yy, class: (tk.v===0 && opts.zero!==false) ? "zeroline":"gridline"}));
+      var lab = el("text", {x: padL-8, y: yy+3.5, class:"axislabel", "text-anchor":"end"});
+      lab.textContent = tk.label; svg.appendChild(lab);
+    });
+
+    // x labels
+    labels.forEach(function(q,i){
+      var lab = el("text", {x:xAt(i), y:H-8, class:"qlabel"+(opts.labelClass?(" "+opts.labelClass):"")});
+      lab.textContent = q; svg.appendChild(lab);
+    });
+
+    // caller renders bars/lines/points
+    opts.render(svg, xAt, yAt, padT, innerH);
+
+    // hover guide + hit columns
+    var guide = el("line", {x1:0,x2:0,y1:padT,y2:padT+innerH,class:"guide"});
+    svg.appendChild(guide);
+
+    var tip = document.createElement("div"); tip.className="tooltip";
+    box.appendChild(svg); box.appendChild(tip);
+    panel.appendChild(box);
+    chartsEl.appendChild(panel);
+
+    for(var i=0;i<count;i++){
+      (function(i){
+        var hit = el("rect", {
+          x: padL + (innerW/count)*i, y: padT, width: innerW/count, height: innerH, class:"hitcol"
+        });
+        hit.addEventListener("mouseenter", function(){ setHover(i, group); });
+        hit.addEventListener("mousemove", function(){ setHover(i, group); });
+        hit.addEventListener("mouseleave", function(){ setHover(-1, group); });
+        hit.addEventListener("focus", function(){ setHover(i, group); });
+        svg.appendChild(hit);
+      })(i);
+    }
+
+    panels.push({
+      svg: svg, box: box, guide: guide, tip: tip, xAt: xAt, yAt: yAt,
+      tooltipFor: opts.tooltipFor, group: group
+    });
+  }
+
+  function setHover(i, group){
+    group = group || "main";
+    hoverIndex = i;
+    panels.forEach(function(p){
+      if(p.group !== group) return;
+      if(i < 0){ p.guide.style.opacity = 0; p.tip.style.opacity = 0; return; }
+      var x = p.xAt(i);
+      p.guide.setAttribute("x1", x); p.guide.setAttribute("x2", x);
+      p.guide.style.opacity = 1;
+      var html = p.tooltipFor(i);
+      if(!html){ p.tip.style.opacity = 0; return; }
+      p.tip.innerHTML = html;
+      var rect = p.svg.getBoundingClientRect();
+      var boxRect = p.box.getBoundingClientRect();
+      var px = rect.left - boxRect.left + (x / 860) * rect.width;
+      p.tip.style.left = px + "px";
+      p.tip.style.top = "6px";
+      p.tip.style.opacity = 1;
+    });
+  }
+
+  // ---------- Panel 1: reserves (bars) ----------
+  buildPanel({
+    title: "Отчисления в резервы за квартал",
+    note: "млрд ₽ · по кварталам",
+    accentVar: "--blue",
+    height: 190,
+    yMin: 0, yMax: 330,
+    yTicks: function(){ return [0,100,200,300].map(function(v){return {v:v,label:v};}); },
+    render: function(svg, xAt, yAt, padT, innerH){
+      var bw = (860-54)/n * 0.56;
+      reserves.forEach(function(v,i){
+        if(v === null) return;
+        var x = xAt(i), y0 = yAt(0), y1 = yAt(v);
+        var h = y0 - y1, r = Math.min(5, h);
+        var x0 = x - bw/2, x1 = x + bw/2;
+        var d = "M "+x0+" "+y0+" L "+x0+" "+(y1+r)+
+                " Q "+x0+" "+y1+" "+(x0+r)+" "+y1+
+                " L "+(x1-r)+" "+y1+
+                " Q "+x1+" "+y1+" "+x1+" "+(y1+r)+
+                " L "+x1+" "+y0+" Z";
+        svg.appendChild(el("path",{d:d, fill:"var(--blue)"}));
+        var lab = el("text", {x:x, y:y1-7, class:"valuelabel"});
+        lab.textContent = v; svg.appendChild(lab);
+      });
+    },
+    tooltipFor: function(i){
+      if(reserves[i]===null) return quarters[i]+" · нет данных";
+      return "<b>"+quarters[i]+"</b><br>Отчисления в резервы: <b>"+fmt(reserves[i]," млрд ₽")+"</b>";
+    }
+  });
+
+  // ---------- Panel 2: problem-loan share (line) ----------
+  buildPanel({
+    title: "Доля проблемных кредитов в портфеле",
+    note: "% · по кварталам",
+    accentVar: "--orange",
+    height: 190,
+    yMin: 9.5, yMax: 14,
+    zero:false,
+    yTicks: function(){ return [10,11,12,13,14].map(function(v){return {v:v,label:v+"%"};}); },
+    render: function(svg, xAt, yAt){
+      var pts = [];
+      share.forEach(function(v,i){ if(v!==null) pts.push([xAt(i), yAt(v), i, v]); });
+      var d = pts.map(function(p,idx){ return (idx===0?"M":"L")+p[0]+" "+p[1]; }).join(" ");
+      svg.appendChild(el("path",{d:d, fill:"none", stroke:"var(--orange)", "stroke-width":2.4, "stroke-linecap":"round", "stroke-linejoin":"round"}));
+      pts.forEach(function(p){
+        svg.appendChild(el("circle",{cx:p[0], cy:p[1], r:4.3, fill:"var(--orange)", stroke:"var(--surface-2)", "stroke-width":2}));
+        var lab = el("text", {x:p[0], y:p[1]-10, class:"valuelabel"});
+        lab.textContent = fmt(p[3],"%"); svg.appendChild(lab);
+      });
+    },
+    tooltipFor: function(i){
+      if(share[i]===null) return "<b>"+quarters[i]+"</b><br>Доля проблемных кредитов: нет данных";
+      return "<b>"+quarters[i]+"</b><br>Доля проблемных кредитов: <b>"+fmt(share[i],"%")+"</b>";
+    }
+  });
+
+  // ---------- Panel 3: coverage (two lines) ----------
+  buildPanel({
+    title: "Покрытие проблемных кредитов",
+    note: "% · по кварталам",
+    accentVar: "--aqua",
+    height: 190,
+    yMin: 30, yMax: 62,
+    zero:false,
+    legendHtml: '<span><i class="swatch line" style="background:var(--aqua)"></i>резервами</span>'+
+                '<span><i class="swatch dash" style="--sc:var(--aqua-2)"></i>резервами и залогами</span>',
+    yTicks: function(){ return [30,40,50,60].map(function(v){return {v:v,label:v+"%"};}); },
+    render: function(svg, xAt, yAt){
+      function line(arr, color, dash){
+        var pts = [];
+        arr.forEach(function(v,i){ if(v!==null) pts.push([xAt(i), yAt(v), i, v]); });
+        var d = pts.map(function(p,idx){ return (idx===0?"M":"L")+p[0]+" "+p[1]; }).join(" ");
+        var attrs = {d:d, fill:"none", stroke:color, "stroke-width":2.2, "stroke-linecap":"round", "stroke-linejoin":"round"};
+        if(dash) attrs["stroke-dasharray"] = "5 4";
+        svg.appendChild(el("path",attrs));
+        pts.forEach(function(p){
+          svg.appendChild(el("circle",{cx:p[0], cy:p[1], r:3.6, fill:color, stroke:"var(--surface-2)", "stroke-width":1.6}));
+        });
+        return pts;
+      }
+      line(covColl, "var(--aqua-2)", true);
+      var main = line(covRes, "var(--aqua)", false);
+      main.forEach(function(p){
+        var lab = el("text", {x:p[0], y:p[1]-9, class:"valuelabel"});
+        lab.textContent = fmt(p[3],"%"); svg.appendChild(lab);
+      });
+    },
+    tooltipFor: function(i){
+      if(covRes[i]===null) return "<b>"+quarters[i]+"</b><br>Покрытие резервами: нет данных<br>Резервами и залогами: "+fmt(covColl[i],"%");
+      if(covColl[i]===null) return "<b>"+quarters[i]+"</b><br>Резервами: <b>"+fmt(covRes[i],"%")+"</b><br>Резервами и залогами: нет данных";
+      return "<b>"+quarters[i]+"</b><br>Резервами: <b>"+fmt(covRes[i],"%")+"</b><br>Резервами и залогами: <b>"+fmt(covColl[i],"%")+"</b>";
+    }
+  });
+
+  // ---------- Panel 4: overdue debt (monthly, two lines) — NEW ----------
+  buildPanel({
+    title: "Просроченная задолженность",
+    note: "% от портфеля · по месяцам, свежее данных по доле проблемных",
+    accentVar: "--red",
+    height: 190,
+    yMin: 2.8, yMax: 6.2,
+    zero:false,
+    group: "overdue",
+    count: nm,
+    labels: monthsShort,
+    labelClass: "small",
+    legendHtml: '<span><i class="swatch line" style="background:var(--red)"></i>кредиты ЮЛ (корпоративные)</span>'+
+                '<span><i class="swatch dash" style="--sc:var(--ink-mute)"></i>розничные кредиты (ФЛ)</span>',
+    yTicks: function(){ return [3,4,5,6].map(function(v){return {v:v,label:v+"%"};}); },
+    render: function(svg, xAt, yAt){
+      function line(arr, color, dash){
+        var pts = [];
+        arr.forEach(function(v,i){ if(v!==null) pts.push([xAt(i), yAt(v), i, v]); });
+        var d = pts.map(function(p,idx){ return (idx===0?"M":"L")+p[0]+" "+p[1]; }).join(" ");
+        var attrs = {d:d, fill:"none", stroke:color, "stroke-width":2.2, "stroke-linecap":"round", "stroke-linejoin":"round"};
+        if(dash) attrs["stroke-dasharray"] = "5 4";
+        svg.appendChild(el("path",attrs));
+        pts.forEach(function(p){
+          svg.appendChild(el("circle",{cx:p[0], cy:p[1], r:3.2, fill:color, stroke:"var(--surface-2)", "stroke-width":1.4}));
+        });
+        return pts;
+      }
+      line(overdueRetail, "var(--ink-mute)", true);
+      var main = line(overdueCorp, "var(--red)", false);
+      main.forEach(function(p,idx){
+        // label only every other point + the last one, to avoid crowding 13 points
+        if(idx % 2 === 0 || idx === main.length-1){
+          var lab = el("text", {x:p[0], y:p[1]-8, class:"valuelabel"});
+          lab.textContent = fmt(p[3],"%"); svg.appendChild(lab);
+        }
+      });
+    },
+    tooltipFor: function(i){
+      return "<b>"+months[i]+"</b><br>Корпоративные (ЮЛ): <b>"+fmt(overdueCorp[i],"%")+"</b><br>Розничные (ФЛ): <b>"+fmt(overdueRetail[i],"%")+"</b>";
+    }
+  });
+
+  // ---------- table view ----------
+  function buildTable(){
+    var wrap = document.createElement("div"); wrap.className="tablewrap";
+    var t = document.createElement("table"); t.className="datatable";
+    t.innerHTML =
+      "<caption>Резервы, доля и покрытие проблемных кредитов по кварталам</caption>"+
+      "<thead><tr><th>Квартал</th><th>Резервы, млрд ₽</th><th>Доля проблемных, %</th>"+
+      "<th>Покрыто резервами, %</th><th>Резервами и залогами, %</th></tr></thead>";
+    var tb = document.createElement("tbody");
+    for(var i=0;i<n;i++){
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>"+quarters[i]+"</td><td>"+(reserves[i]===null?"—":reserves[i])+"</td>"+
+        "<td>"+(share[i]===null?"—":fmt(share[i],"%"))+"</td>"+
+        "<td>"+(covRes[i]===null?"—":fmt(covRes[i],"%"))+"</td>"+
+        "<td>"+(covColl[i]===null?"—":fmt(covColl[i],"%"))+"</td>";
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    wrap.appendChild(t);
+    document.getElementById("tableview").appendChild(wrap);
+
+    var wrap2 = document.createElement("div"); wrap2.className="tablewrap";
+    var t2 = document.createElement("table"); t2.className="datatable";
+    t2.innerHTML =
+      "<caption>Просроченная задолженность по месяцам, % от портфеля</caption>"+
+      "<thead><tr><th>Месяц</th><th>Кредиты ЮЛ</th><th>Розничные кредиты</th></tr></thead>";
+    var tb2 = document.createElement("tbody");
+    for(var j=0;j<nm;j++){
+      var tr2 = document.createElement("tr");
+      tr2.innerHTML = "<td>"+months[j]+"</td><td>"+fmt(overdueCorp[j],"%")+"</td><td>"+fmt(overdueRetail[j],"%")+"</td>";
+      tb2.appendChild(tr2);
+    }
+    t2.appendChild(tb2);
+    wrap2.appendChild(t2);
+    document.getElementById("tableview").appendChild(wrap2);
+  }
+  buildTable();
+
+  var btn = document.getElementById("viewToggle");
+  var chartsWrap = document.getElementById("charts");
+  var tableWrap = document.getElementById("tableview");
+  var showingTable = false;
+  btn.addEventListener("click", function(){
+    showingTable = !showingTable;
+    chartsWrap.hidden = showingTable;
+    tableWrap.hidden = !showingTable;
+    btn.textContent = showingTable ? "Показать графиками" : "Показать таблицей";
+  });
+
+})();
+</script>
+
+</body></html>

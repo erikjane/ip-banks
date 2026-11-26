@@ -773,11 +773,15 @@ function renderBanks(view, selBank){
   const A=bankAverages(), app=document.getElementById("ipa-app");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / Банковский сектор</div>
     <h1>Банковский сектор</h1><p class="sub">${A?A.n:""} банков в среднем · МКБ в среднем не участвует · суммы в млрд ₽</p>
-    <div class="seg" id="ipa-seg"><button data-v="overview" class="${view!=="rsbu"?"on":""}">Обзор сектора</button><button data-v="rsbu" class="${view==="rsbu"?"on":""}">Ежемесячное РСБУ</button></div>
+    <div class="seg" style="flex-wrap:wrap" id="ipa-seg"><button data-v="overview" class="${view==="overview"?"on":""}">Обзор сектора</button><button data-v="rsbu" class="${view==="rsbu"?"on":""}">Ежемесячное РСБУ</button><button data-v="reserves" class="${view==="reserves"?"on":""}">Резервы/проблемка</button></div>
     <div id="ipa-bview"></div>`;
-  document.getElementById("ipa-seg").onclick=e=>{const b=e.target.closest("button"); if(b) location.hash=b.dataset.v==="rsbu"?"banks-rsbu":"banks";};
+  document.getElementById("ipa-seg").onclick=e=>{const b=e.target.closest("button"); if(b) location.hash=b.dataset.v==="overview"?"banks":"banks-"+b.dataset.v;};
   const box=document.getElementById("ipa-bview");
   if(view==="rsbu") return renderRsbu(box, selBank);
+  if(view==="reserves"){
+    box.innerHTML=`<iframe src="https://erikjane.github.io/ip-banks/bank-reserves.html" title="Резервы и проблемные кредиты" sandbox="allow-scripts" style="display:block;width:100%;height:80vh;border:0;border-radius:16px"></iframe>`;
+    return;
+  }
   const btns=BANKS.map(b=>{const s=bankSummary(b); return `<a class="btn" href="#bank-${b.id}">${esc(b.short)} <small>${b.ticker}</small></a>`}).join("");
   box.innerHTML=`
     <div class="tiles">
@@ -1048,6 +1052,7 @@ function route(){
   if(h==="home") renderHome();
   else if(h==="sectors") renderSectors();
   else if(h==="banks") renderBanks("overview");
+  else if(h==="banks-reserves") renderBanks("reserves");
   else if(h.startsWith("banks-rsbu")) renderBanks("rsbu", h.slice("banks-rsbu-".length)||null);
   else if(h.startsWith("bank-")){ const b=BANKS.find(x=>x.id===h.slice(5)); b?renderBank(b):renderSectors(); }
   else if(SECTORS[h]) renderSector(h);
