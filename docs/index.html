@@ -778,8 +778,8 @@ function renderSector(secId){
     <h2>Оценка компаний: Долг/EBITDA и EV/EBITDA (LTM)</h2>
     <div class="card zoomcard">${zoomBtn()}<div class="chart-wrap" style="height:420px"><canvas id="bub"></canvas></div>
       <p class="note" style="margin:10px 0 0">Размер кружка — капитализация. Пунктир — средние по отрасли. Левее и ниже — дешевле и с меньшим долгом.</p></div>`;
-  if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569"; charts.push(new Chart(document.getElementById("bub"),bubbleChart(A)));
-    app.querySelector(".zoombtn").onclick=()=>openZoom(`${S.name}: Долг/EBITDA и EV/EBITDA (LTM)`, big=>bubbleChart(A,big)); }
+  if(window.Chart){ Chart.defaults.font.family="Manrope"; Chart.defaults.color="#475569"; charts.push(new Chart(document.getElementById("bub"),bubbleChart(A,false,secId)));
+    app.querySelector(".zoombtn").onclick=()=>openZoom(`${S.name}: Долг/EBITDA и EV/EBITDA (LTM)`, big=>bubbleChart(A,big,secId)); }
 }
 // увеличенный график во всплывающем окне
 function openZoom(title, cfgFn){
@@ -792,18 +792,23 @@ function openZoom(title, cfgFn){
   ov.querySelector(".zoomx").onclick=close; ov.onclick=e=>{ if(e.target===ov) close(); }; document.addEventListener("keydown",esc_);
 }
 function zoomBtn(){ return `<button class="zoombtn" type="button">⤢ Увеличить</button>`; }
-function bubbleChart(A,big){
-  return bubble(A.rows.map(x=>({name:x.c.short,x:x.s.evE,y:x.s.debtE,cap:x.s.cap})), A.evE, A.debtE, {x:"EV/EBITDA",y:"Долг/EBITDA",padX:1,padY:0.8,big});
+function bubbleChart(A,big,secId){
+  const compact=secId==="metals";
+  const rows=compact?A.rows.filter(x=>x.c.id!=="mtlr"):A.rows;
+  return bubble(rows.map(x=>({name:x.c.short,x:x.s.evE,y:x.s.debtE,cap:x.s.cap})), A.evE, A.debtE, {x:"EV/EBITDA",y:"Долг/EBITDA",padX:1,padY:0.8,big,compact});
 }
 function bubble(all, avgX, avgY, o){
   const pts=all.filter(p=>isNum(p.x)&&isNum(p.y)), A={evE:avgX,debtE:avgY}, fx=v=>o.xPct?fmt(v,"pct"):fmt(v);
   const capMax=Math.max(...pts.map(p=>isNum(p.cap)?p.cap:0),1);
   const COLS=["#1F5CFF","#0F2042","#15803D","#94A3B8","#DC2626","#7C3AED","#D97706","#0891B2"];
   const W=window.innerWidth, k=o.big?Math.max(0.5,Math.min(1.15,W/1000)):(W<700?0.5:1);
-  const ds=pts.map((p,i)=>({label:p.name, data:[{x:p.x,y:p.y,r:(7+33*Math.sqrt((p.cap||0)/capMax))*k,cap:p.cap}],
+  const ds=pts.map((p,i)=>({label:p.name, data:[{x:p.x,y:p.y,r:(o.compact?6+14*Math.sqrt((p.cap||0)/capMax):7+33*Math.sqrt((p.cap||0)/capMax))*k,cap:p.cap}],
     backgroundColor:COLS[i%COLS.length]+"CC", borderColor:COLS[i%COLS.length], borderWidth:1.5}));
   const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y), st=o.step||0.5;
-  const pad=(a,b,k)=>[Math.floor((a-k)/st)*st, Math.ceil((b+k)/st)*st];
+  const pad=(a,b,k)=>{
+    const margin=o.compact?Math.max(k,(b-a)*0.24):k;
+    return [Math.floor((a-margin)/st)*st, Math.ceil((b+margin)/st)*st];
+  };
   const [x0,x1]=pad(Math.min(...xs,avgX??Infinity),Math.max(...xs,avgX??-Infinity),o.padX), [y0,y1]=pad(Math.min(...ys,avgY??Infinity,0),Math.max(...ys,avgY??-Infinity),o.padY);
   const marks={id:"marks",afterDatasetsDraw(ch){const {ctx,scales:{x,y}}=ch; ctx.save();
     ctx.setLineDash([5,5]); ctx.strokeStyle="#94A3B8"; ctx.lineWidth=1;
@@ -825,7 +830,7 @@ function bubble(all, avgX, avgY, o){
     const items=ch.data.datasets.map((d,i)=>({d,m:ch.getDatasetMeta(i).data[0]})).filter(t=>t.m&&!t.m.skip).sort((a,b)=>b.d.data[0].r-a.d.data[0].r);
     items.forEach(({d,m})=>{ const r=d.data[0].r, tw=ctx.measureText(d.label).width, th=14;
       const opts=[[m.x-tw/2,m.y-r-6-th],[m.x-tw/2,m.y+r+6],[m.x+r+6,m.y-th/2],[m.x-r-6-tw,m.y-th/2],[m.x-tw/2,m.y-r-24-th],[m.x-tw/2,m.y+r+24]];
-      let pos=opts.find(([px,py])=>!hit({x:px,y:py,w:tw,h:th})&&px>=x.left-4&&px+tw<=x.right+4)||opts[0];
+      let pos=opts.find(([px,py])=>!hit({x:px,y:py,w:tw,h:th})&&px>=x.left-4&&px+tw<=x.right+4&&(!o.compact||(py>=y.top&&py+th<=y.bottom)))||opts[0];
       placed.push({x:pos[0],y:pos[1],w:tw,h:th}); ctx.textAlign="left"; ctx.textBaseline="top"; ctx.fillText(d.label,pos[0],pos[1]); });
     ctx.textBaseline="alphabetic";
 
@@ -834,7 +839,7 @@ function bubble(all, avgX, avgY, o){
     plugins:{legend:{position:"bottom",labels:{boxWidth:12,usePointStyle:true}},
       tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${o.x} ${fx(c.raw.x)}, ${o.y} ${fmt(c.raw.y)}, капитализация ${fmt(c.raw.cap)} млрд ₽`}}},
     scales:{x:{min:x0,max:x1,title:{display:true,text:o.x},grid:{color:"#E2E8F0"},ticks:o.xPct?{callback:v=>nf(1).format(v*100)+"%"}:{}},
-            y:{min:Math.min(...ys)>=0?0:y0,max:y1,title:{display:true,text:o.y},grid:{color:c=>c.tick.value===0?"#0F2042":"#E2E8F0"}}}}};
+            y:{min:!o.compact&&Math.min(...ys)>=0?0:y0,max:y1,title:{display:true,text:o.y},grid:{color:c=>c.tick.value===0?"#0F2042":"#E2E8F0"}}}}};
 }
 function renderSectorFin(secId,S,A,app,btns,c,up){
   const pos=v=>isNum(v)&&v>0?v:null, cc=(co,cl)=>co.noAvg?"":cl;
