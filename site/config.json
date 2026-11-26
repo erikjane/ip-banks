@@ -135,7 +135,12 @@
   },
   {
    "id": "industry",
-   "name": "Промышленность"
+   "name": "Промышленность",
+   "active": true,
+   "spreadsheet_id": "129Hz1ub6kpftVkcDEEiKkui_k5ik3b4KkYRZoR2XXfA",
+   "sheets": {
+    "include": ["ТМК", "Соллерс", "Сегежа"]
+   }
   }
  ],
  "rsbu": {

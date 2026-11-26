@@ -137,10 +137,10 @@ def build_sector(src, sector):
     sid = sector["spreadsheet_id"]
     names = pick_sheets(src.sheet_names(sid), sector.get("sheets", {}))
     grids = src.grids(sid, names)
-    if sector["id"] == "fertilizers":
+    if sector["id"] in ("fertilizers", "industry"):
         if any(not grids.get(name) for name in sector["sheets"]["include"]):
-            raise ValueError("Missing fertilizer company sheets")
-        grids = {name: fertilizer_grid(rows) for name, rows in grids.items()}
+            raise ValueError(f"Missing company sheets for {sector['id']}")
+        grids = {name: industrial_grid(rows) for name, rows in grids.items()}
     if sector["id"] == "pharma":
         if any(not grids.get(name) for name in sector["sheets"]["include"]):
             raise ValueError("Missing pharma sheets")
@@ -148,7 +148,7 @@ def build_sector(src, sector):
     return {"id": sector["id"], "sheets": grids}
 
 
-def fertilizer_grid(rows):
+def industrial_grid(rows):
     """Publish financial values, period labels and valuation scenarios."""
     header = rows[0]
     last_col = next(c for c, value in enumerate(header) if str(value).lower().startswith("прогноз"))
