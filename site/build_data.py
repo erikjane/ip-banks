@@ -137,10 +137,11 @@ def build_sector(src, sector):
     sid = sector["spreadsheet_id"]
     names = pick_sheets(src.sheet_names(sid), sector.get("sheets", {}))
     grids = src.grids(sid, names)
-    if sector["id"] in ("fertilizers", "industry"):
+    if sector["id"] in ("fertilizers", "industry", "metals"):
         if any(not grids.get(name) for name in sector["sheets"]["include"]):
             raise ValueError(f"Missing company sheets for {sector['id']}")
-        grids = {name: industrial_grid(rows) for name, rows in grids.items()}
+        grids = {name: industrial_grid(rows, include_target_note=sector["id"] == "metals")
+                 for name, rows in grids.items()}
     if sector["id"] == "pharma":
         if any(not grids.get(name) for name in sector["sheets"]["include"]):
             raise ValueError("Missing pharma sheets")
@@ -148,7 +149,7 @@ def build_sector(src, sector):
     return {"id": sector["id"], "sheets": grids}
 
 
-def industrial_grid(rows):
+def industrial_grid(rows, include_target_note=False):
     """Publish financial values, period labels and valuation scenarios."""
     header = rows[0]
     last_col = next(c for c, value in enumerate(header) if str(value).lower().startswith("прогноз"))
@@ -167,6 +168,11 @@ def industrial_grid(rows):
             end = total_col + 2
             scenario += [""] * (start - len(scenario)) + row[start:end]
         clean.append(scenario)
+    if include_target_note:
+        following = rows[total_row + 4:total_row + 5]
+        note = following[0][0] if following and following[0] else None
+        if isinstance(note, str) and re.search(r"справедлив|целев", note, re.I):
+            clean.extend([[], ["Комментарий к целевой цене", note]])
     return trim_grid(clean)
 
 

@@ -4,10 +4,10 @@
   {
    "id": "metals",
    "name": "Металлурги",
-   "active": false,
+   "active": true,
    "spreadsheet_id": "1jatjseMnUpOuKK5hU5N9GiErq-otz1woGBGkXpmiGqU",
    "sheets": {
-    "exclude": "^(Copy of|Копия)|график"
+    "include": ["Северсталь", "НЛМК", "ММК", "Мечел", "Распадская"]
    }
   },
   {

@@ -3,7 +3,7 @@
   {
    "id": "metals",
    "name": "Металлурги",
-   "active": false
+   "active": true
   },
   {
    "id": "banks",
