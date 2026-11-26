@@ -56,8 +56,8 @@ const SECTORS = {
     {id:"chmf", short:"Северсталь", sheet:"Северсталь", ticker:"CHMF"},
     {id:"nlmk", short:"НЛМК", sheet:"НЛМК", ticker:"NLMK"},
     {id:"magn", short:"ММК", sheet:"ММК", ticker:"MAGN"},
-    {id:"mtlr", short:"Мечел", sheet:"Мечел", ticker:"MTLR", preferred:true},
-    {id:"rasp", short:"Распадская", sheet:"Распадская", ticker:"RASP"}]},
+    {id:"mtlr", short:"Мечел", sheet:"Мечел", ticker:"MTLR", preferred:true, noAvg:true},
+    {id:"rasp", short:"Распадская", sheet:"Распадская", ticker:"RASP", noAvg:true}]},
   industry:{name:"Промышленность", companies:[
     {id:"trmk", short:"ТМК", sheet:"ТМК", ticker:"TRMK"},
     {id:"svav", short:"Соллерс", sheet:"Соллерс", ticker:"SVAV", targetNote:"Значительный разброс целевых цен обусловлен высокой базой 2п2025 года и ожидаемым снижением финансовых результатов во 2п2026 года. Компания отчитывается по МСФО раз в полгода, поэтому при расчёте по LTM в оценку попадают высокие показатели, тогда как прогноз на 2026 год учитывает ухудшение финансовых результатов."},
@@ -524,7 +524,7 @@ function renderSector(secId){
     <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}${s.dyFc?' <small style="color:var(--muted)">(прогноз)</small>':""}</td><td>${up(s.up)}</td></tr>`).join("");
   const notes=[A.peLoss.length?`P/E: ${A.peLoss.join(", ")} — убыток, в средний P/E не ${A.peLoss.length>1?"входят":"входит"}.`:"", A.pbOut.length?`P/B: ${A.pbOut.join(", ")} — собственный капитал маленький, в средний P/B не ${A.pbOut.length>1?"входят":"входит"}.`:""].filter(Boolean).join(" ");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
-    <h1>${esc(S.name)}</h1><p class="sub">${secId==="industry"?`${A.nAvg} компании в среднем`:`${A.n} компании в среднем`} · МСФО · LTM — последние 12 месяцев · ${secId==="medicine"?"капитализация в млрд ₽":"суммы в млрд ₽"}</p>
+    <h1>${esc(S.name)}</h1><p class="sub">${["industry","metals"].includes(secId)?`${A.nAvg} компании в среднем`:`${A.n} компании в среднем`} · МСФО · LTM — последние 12 месяцев · ${secId==="medicine"?"капитализация в млрд ₽":"суммы в млрд ₽"}</p>
     ${A.rows.filter(x=>x.c.banner).map(x=>`<div class="card notebar"><b>${esc(x.c.short)}:</b> ${esc(x.c.banner)}</div>`).join("")}
     <div class="tiles">
       <div class="tile"><span>Средний P/E</span><b>${fmt(A.pe)}</b></div>
@@ -539,6 +539,7 @@ function renderSector(secId){
       <tr class="total"><td>Среднее</td><td></td><td></td><td>${fmt(A.mE,"pct")}</td><td>${fmt(A.mNet,"pct")}</td><td>${fmt(A.pe)}</td><td>${fmt(A.evE)}</td><td>${fmt(A.debtE)}</td><td>${fmt(A.dy,"pct")}</td><td></td></tr></tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>лучше среднего: рентабельность и дивиденды выше, мультипликаторы и долг ниже</span><span><i style="background:#FEE2E2"></i>хуже среднего</span></div>
     ${notes?`<p class="note">${esc(notes)}</p>`:""}
+    ${secId==="metals"?`<p class="note">Средние рассчитаны по ММК, «Северстали» и НЛМК. В средний P/E входят только положительные значения.</p>`:""}
     ${secId==="industry"?`<p class="note">«Сегежа» использует OIBDA и исключена из средних по сектору согласно сводному листу. При отрицательной OIBDA мультипликаторы на её основе не показываются в сводной.</p>`:""}
     <h2>Оценка компаний: Долг/EBITDA и EV/EBITDA (LTM)</h2>
     <div class="card zoomcard">${zoomBtn()}<div class="chart-wrap" style="height:420px"><canvas id="ipa-bub"></canvas></div>
