@@ -873,10 +873,12 @@ function multHTML(p,mode){
   const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
   // отрицательный Долг/EBITDA: при отрицательной EBITDA — плохо (красный), при отрицательном чистом долге — хорошо (зелёный)
   const ebRow=findRow(p,/^(скорр\.?\s*)?(ebitda|oibda)/i);
-  const body=p.mult.map(m=>{const pct=p.financeId&&/^(roe(?:\s*[,(:]\s*%\)?)?|free\s*float|e\/p)$/i.test(norm(m.label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":(p.financeId&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
+  const body=p.mult.map(m=>{const label=norm(m.label);
+    const roe=p.financeId&&/^roe(?:\s*[,(:]\s*%\)?)?$/i.test(label);
+    const pct=roe||(p.financeId&&/^(free\s*float|e\/p)$/i.test(label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":(p.financeId&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":roe?(v>m.avg?"lo":"hi"):(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
     return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${val(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i],i)}">${val(m.vals[i])}</td>`).join("")}</tr>`}).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
-    <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>${p.financeId?"серым — на уровне среднего или отрицательный (убыток)":"серым — отрицательный (убыток), не сравнивается"}</span></div>`;
+    <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>${p.financeId?"серым — на уровне среднего или отрицательный (убыток)":"серым — отрицательный (убыток), не сравнивается"}</span>${p.financeId?'<span>ROE: выше среднего — зелёный, ниже — красный.</span>':""}</div>`;
 }
 function fairBlock(s,price){
   const F=s.p?.financeId&&s.fairSpec&&isNum(s.fair)?{...s.fairSpec,fair:s.fair,parts:s.fair===s.fairSpec.fair?s.fairSpec.parts:[]}:s.fairSpec; if(!F) return `<p class="note">Итоговая справедливая стоимость на листе не найдена.</p>`;
