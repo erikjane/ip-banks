@@ -182,6 +182,7 @@ def pharma_grids(grids):
         width = max(i for i, value in enumerate(head) if str(value).startswith("Прогноз")) + 1
         header = [str(v).rstrip("*") if isinstance(v, str) else v for v in head[:width]]
         header[1] = "CAGR"
+        forecast_headers = header[header.index("LTM") + 1:]
         mult = next(i for i, row in enumerate(rows) if row and row[0] == "Мультипликаторы")
         mult_end = next(i for i in range(mult + 1, len(rows)) if not rows[i] or not rows[i][0])
         body = rows[1:mult]
@@ -195,6 +196,9 @@ def pharma_grids(grids):
                 metrics.append([])
                 continue
             values = [v if isinstance(v, (int, float)) else "" for v in row[1:width]]
+            if label.lower() == "инфляция":
+                values = [v if isinstance(v, str) and re.fullmatch(r"\d+(?:[.,]\d+)?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?%", v) else value
+                          for v, value in zip(row[1:width], values)]
             if name == "Биннофарм" and label in ("Р/Е", "P/S", "P/BV", "EV/EBITDA"):
                 continue
             metrics.append([label, *values])
@@ -203,9 +207,7 @@ def pharma_grids(grids):
             for method in ("Р/Е", "EV/EBITDA"):
                 start = next(i for i in range(mult_end, len(rows))
                              if rows[i][:3] == [method, "LTM", "П2026"])
-                scenarios = [method, "LTM", header[21]]
-                if name == "Промомед":
-                    scenarios.append(header[22])
+                scenarios = [method, "LTM", *forecast_headers]
                 grid.append(scenarios)
                 for row in rows[start + 1:]:
                     if not row or not row[0]:

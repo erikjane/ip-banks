@@ -509,7 +509,7 @@ function parseCompany(grid, financeId, pharma=false, isMedicine=false){
   const blocks=[]; let cur=null;
   for(let r=1;r<multRow;r++){ const l=L(r); if(!l||isNum(grid[r][0])){cur=null;continue}
     if(!cur){cur={rows:[]};blocks.push(cur)}
-    cur.rows.push({label:l,pct:isPctLabel(l)||(isMedicine&&/^инфляция$/i.test(l))||((financeId||isMedicine)&&/^(free\s*float|e\/p)$/i.test(norm(l))),sub:/^темп|^юридическ|^физическ|^в том числе|^доля/i.test(l),vals:cols.map(k=>grid[r][k.c])}); }
+    cur.rows.push({label:l,pct:isPctLabel(l)||((isMedicine||pharma)&&/^инфляция$/i.test(l))||(((financeId||isMedicine)&&/^(free\s*float|e\/p)$/i.test(norm(l)))||(pharma&&/^free\s*float$/i.test(norm(l)))),sub:/^темп|^юридическ|^физическ|^в том числе|^доля/i.test(l),vals:cols.map(k=>grid[r][k.c])}); }
   const title=b=>{ const s=b.rows.map(r=>r.label.toLowerCase()).join("|");
     if(/выручка/.test(s)) return "Финансовые результаты";
     if(/процентные доходы/.test(s)) return "Доходы и прибыль";
@@ -1152,17 +1152,17 @@ function periodTH(p,label,cls=""){
 function tableHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.blocks.some(b=>b.rows.some(r=>isNum(r.vals[i]))));
   const th=cols.map(i=>periodTH(p,p.cols[i].label,p.cols[i].kind==="ltm"?"ltm":"")).join("");
-  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); return `<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${p.isMedicine&&/^инфляция$/i.test(r.label)&&typeof v==="string"&&v.endsWith("%")?esc(v):fmt(v,r.pct||p.cols[i].kind==="cagr"?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
+  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); return `<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${(p.isMedicine||p.pharma)&&/^инфляция$/i.test(r.label)&&typeof v==="string"&&v.endsWith("%")?esc(v):fmt(v,r.pct||p.cols[i].kind==="cagr"?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function multHTML(p,mode){
-  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
+  const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>!(p.pharma&&p.cols[i].kind==="cagr")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
   const th=cols.map(i=>periodTH(p,p.cols[i].label,p.cols[i].kind==="ltm"?"ltm":"")).join("");
   // отрицательный Долг/EBITDA: при отрицательной EBITDA — плохо (красный), при отрицательном чистом долге — хорошо (зелёный)
   const ebRow=findRow(p,/^(скорр\.?\s*)?(ebitda|oibda)/i);
   const body=p.mult.map(m=>{const label=norm(m.label);
     const roe=(p.financeId||p.isMedicine)&&/^roe(?:\s*[,(:]\s*%\)?)?$/i.test(label);
-    const pct=roe||((p.financeId||p.isMedicine)&&/^(free\s*float|e\/p)$/i.test(label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":((p.financeId||roe)&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":roe?(v>m.avg?"lo":"hi"):(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
+    const pct=roe||(p.pharma&&/^(roe(?:\s*[,(:]\s*%\)?)?|free\s*float|инфляция)$/i.test(label))||((p.financeId||p.isMedicine)&&/^(free\s*float|e\/p)$/i.test(label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":((p.financeId||roe)&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":roe?(v>m.avg?"lo":"hi"):(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
     return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${val(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i],i)}">${val(m.vals[i])}</td>`).join("")}</tr>`}).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>${p.financeId||p.isMedicine?"серым — на уровне среднего или отрицательный (убыток)":"серым — отрицательный (убыток), не сравнивается"}</span>${p.financeId||p.isMedicine?'<span>ROE: выше среднего — зелёный, ниже — красный.</span>':""}</div>`;
