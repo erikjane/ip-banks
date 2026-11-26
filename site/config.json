@@ -122,7 +122,12 @@
   },
   {
    "id": "pharma",
-   "name": "Фарма"
+   "name": "Фарма",
+   "active": true,
+   "spreadsheet_id": "1sO8QNDjdXjRF7ICEBbrYjWWSZ4CM72JYcg1l-ZZYA3c",
+   "sheets": {
+    "include": ["средние", "Озон Фармацевтика", "Промомед", "Биннофарм"]
+   }
   },
   {
    "id": "medicine",

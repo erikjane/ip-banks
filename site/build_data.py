@@ -141,6 +141,10 @@ def build_sector(src, sector):
         if any(not grids.get(name) for name in sector["sheets"]["include"]):
             raise ValueError("Missing fertilizer company sheets")
         grids = {name: fertilizer_grid(rows) for name, rows in grids.items()}
+    if sector["id"] == "pharma":
+        if any(not grids.get(name) for name in sector["sheets"]["include"]):
+            raise ValueError("Missing pharma sheets")
+        grids = pharma_grids(grids)
     return {"id": sector["id"], "sheets": grids}
 
 
@@ -164,6 +168,52 @@ def fertilizer_grid(rows):
             scenario += [""] * (start - len(scenario)) + row[start:end]
         clean.append(scenario)
     return trim_grid(clean)
+
+
+def pharma_grids(grids):
+    """Keep the sector comparison and the three issuers' numeric data."""
+    summary = grids["средние"]
+    comparison = next(i for i, row in enumerate(summary) if "Прогноз дивидендной доходности 2026" in row)
+    result = {"средние": trim_grid([row[:11] for row in summary[comparison:comparison + 4]])}
+    for name, rows in grids.items():
+        if name == "средние":
+            continue
+        head = rows[0]
+        width = max(i for i, value in enumerate(head) if str(value).startswith("Прогноз")) + 1
+        header = [str(v).rstrip("*") if isinstance(v, str) else v for v in head[:width]]
+        header[1] = "CAGR"
+        mult = next(i for i, row in enumerate(rows) if row and row[0] == "Мультипликаторы")
+        mult_end = next(i for i in range(mult + 1, len(rows)) if not rows[i] or not rows[i][0])
+        body = rows[1:mult]
+        if name == "Озон Фармацевтика":
+            operations = next(i for i, row in enumerate(rows) if row and row[0] == "Операционные результаты")
+            body += [[]] + rows[operations:operations + 18]
+        metrics = []
+        for row in body + rows[mult:mult_end]:
+            label = row[0] if row else ""
+            if not isinstance(label, str) or not label or label.startswith("в планах"):
+                metrics.append([])
+                continue
+            values = [v if isinstance(v, (int, float)) else "" for v in row[1:width]]
+            if name == "Биннофарм" and label in ("Р/Е", "P/S", "P/BV", "EV/EBITDA"):
+                continue
+            metrics.append([label, *values])
+        grid = [header, *metrics, [], ["Мультипликаторный прогноз"]]
+        if name != "Биннофарм":
+            for method in ("Р/Е", "EV/EBITDA"):
+                start = next(i for i in range(mult_end, len(rows))
+                             if rows[i][:3] == [method, "LTM", "П2026"])
+                scenarios = [method, "LTM", header[21]]
+                if name == "Промомед":
+                    scenarios.append(header[22])
+                grid.append(scenarios)
+                for row in rows[start + 1:]:
+                    if not row or not row[0]:
+                        break
+                    grid.append(row[:len(scenarios)])
+                grid.append([])
+        result[name] = trim_grid(grid)
+    return result
 
 
 def build_rsbu(cfg, local_dir=None):

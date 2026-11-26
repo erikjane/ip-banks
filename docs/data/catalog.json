@@ -78,7 +78,7 @@
   {
    "id": "pharma",
    "name": "Фарма",
-   "active": false
+   "active": true
   },
   {
    "id": "medicine",
