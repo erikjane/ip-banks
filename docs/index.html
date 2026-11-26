@@ -1152,8 +1152,24 @@ function periodTH(p,label,cls=""){
 function tableHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.blocks.some(b=>b.rows.some(r=>isNum(r.vals[i]))));
   const th=cols.map(i=>periodTH(p,p.cols[i].label,p.cols[i].kind==="ltm"?"ltm":"")).join("");
-  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); return `<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${(p.isMedicine||p.pharma)&&/^инфляция$/i.test(r.label)&&typeof v==="string"&&v.endsWith("%")?esc(v):fmt(v,r.pct||p.cols[i].kind==="cagr"?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
-  return `<div class="tbl fin"><table><thead><tr><th>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const compact=p.financeId==="moex"||p.financeId==="sfin";
+  const labelStyle=compact?' style="min-width:180px;max-width:210px;white-space:normal"':"";
+  const shortLabel=label=>{
+    if(p.financeId==="moex"&&/^комиссионные доходы,/i.test(label)) return "Комиссионные доходы";
+    if(p.financeId==="sfin"){
+      if(/^чистый процентный доход после расходов/i.test(label)) return "Чистый процентный доход после резервов";
+      if(/^чистый процентный доход,/i.test(label)) return "Чистый процентный доход";
+      if(/^общий доход от опер\. деятельности/i.test(label)) return "Операционный и финансовый доход";
+    }
+    return label;
+  };
+  const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); const label=shortLabel(r.label); return `<tr class="${r.sub?"sub":""}"><td${labelStyle}${label!==r.label?` title="${esc(r.label)}"`:""}>${esc(label)}</td>${cols.map(i=>{const v=r.vals[i];
+    if(p.financeId==="moex"&&label==="Комиссионные доходы"&&p.cols[i].kind==="cagr"&&typeof v==="string"){
+      const rate=v.match(/\d[\d.,]*\s*[-–]\s*\d[\d.,]*%/);
+      if(rate) return `<td title="${esc(v)}">${esc(rate[0])} оборота</td>`;
+    }
+    return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${(p.isMedicine||p.pharma)&&/^инфляция$/i.test(r.label)&&typeof v==="string"&&v.endsWith("%")?esc(v):fmt(v,r.pct||p.cols[i].kind==="cagr"?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
+  return `<div class="tbl fin"><table><thead><tr><th${labelStyle}>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function multHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>!(p.pharma&&p.cols[i].kind==="cagr")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
