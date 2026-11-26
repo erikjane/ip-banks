@@ -1,94 +1,53 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Резервы и проблемные кредиты</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:wght@400;600&display=swap">
 <style>
   :root{
-    color-scheme: light;
-    --surface: #fbfaf6;
-    --surface-2: #f2efe7;
-    --surface-3: #eae6da;
-    --ink: #17140f;
-    --ink-soft: #5c5648;
-    --ink-mute: #8b8474;
-    --line: #e2ddd0;
-    --line-strong: #cfc8b6;
-    --blue: #2a6fc9;
-    --blue-soft: #dbe8fa;
-    --orange: #d9622c;
-    --orange-soft: #fbe3d5;
-    --aqua: #17916a;
-    --aqua-soft: #d8f0e6;
-    --aqua-2: #7fbfa8;
-    --grey: #78715f;
-    --grey-soft: #e7e2d3;
-    --red: #b43f3f;
-    --red-soft: #f0d9d3;
-    --shadow: 0 1px 2px rgba(23,20,15,.06);
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      color-scheme: dark;
-      --surface: #171613;
-      --surface-2: #1e1c18;
-      --surface-3: #29261f;
-      --ink: #f3efe6;
-      --ink-soft: #c9c2b1;
-      --ink-mute: #8f8975;
-      --line: #343026;
-      --line-strong: #443f32;
-      --blue: #5b9ae8;
-      --blue-soft: #203552;
-      --orange: #ef8a56;
-      --orange-soft: #4a2e1c;
-      --aqua: #4fcaa0;
-      --aqua-soft: #163a2d;
-      --aqua-2: #3f6e5c;
-      --grey: #a49c86;
-      --grey-soft: #38341f;
-      --red: #e08a7c;
-      --red-soft: #3c241f;
-      --shadow: 0 1px 2px rgba(0,0,0,.4);
-    }
-  }
-  :root[data-theme="dark"]{
-    color-scheme: dark;
-    --surface: #171613;
-    --surface-2: #1e1c18;
-    --surface-3: #29261f;
-    --ink: #f3efe6;
-    --ink-soft: #c9c2b1;
-    --ink-mute: #8f8975;
-    --line: #343026;
-    --line-strong: #443f32;
-    --blue: #5b9ae8;
-    --blue-soft: #203552;
-    --orange: #ef8a56;
-    --orange-soft: #4a2e1c;
-    --aqua: #4fcaa0;
-    --aqua-soft: #163a2d;
-    --aqua-2: #3f6e5c;
-    --grey: #a49c86;
-    --grey-soft: #38341f;
-    --red: #e08a7c;
-    --red-soft: #3c241f;
-    --shadow: 0 1px 2px rgba(0,0,0,.4);
+    color-scheme:light;
+    --surface:#F8FAFC;
+    --surface-2:#FFFFFF;
+    --surface-3:#EFF6FF;
+    --ink:#0F2042;
+    --ink-soft:#334155;
+    --ink-mute:#475569;
+    --line:#E2E8F0;
+    --line-strong:#CBD5E1;
+    --blue:#1F5CFF;
+    --blue-soft:#DBEAFE;
+    --lime:#B6F03A;
+    --orange:#B45309;
+    --orange-soft:#FEF3C7;
+    --aqua:#15803D;
+    --aqua-soft:#DCFCE7;
+    --aqua-2:#86C799;
+    --grey:#64748B;
+    --grey-soft:#E2E8F0;
+    --red:#DC2626;
+    --red-soft:#FEE2E2;
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     background:var(--surface);
     color:var(--ink);
-    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    font-family:"Inter", system-ui, sans-serif;
     padding: max(20px, env(safe-area-inset-top,0px)) 0 max(28px, env(safe-area-inset-bottom,0px));
   }
-  .wrap{max-width:880px;margin:0 auto;padding:0 20px;}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px;}
+  .hero{background:var(--blue);color:#fff;border-radius:12px;padding:clamp(20px,4vw,40px);margin-bottom:16px;}
+  a{color:var(--blue);text-underline-offset:.18em;}
+  .hero .sub{color:inherit;font-family:"Source Serif 4",Georgia,serif;font-size:clamp(17px,2vw,20px);max-width:68ch;}
   h1{
-    font-family:"Fraunces", Georgia, serif;
+    font-family:"Source Serif 4", Georgia, serif;
     font-weight:600;
-    font-size:clamp(26px,4.2vw,36px);
+    font-size:clamp(30px,5vw,48px);
     line-height:1.12;
     margin:0 0 8px;
-    text-wrap:balance;
+    overflow-wrap:anywhere;
     letter-spacing:-.01em;
   }
   .sub{color:var(--ink-soft); font-size:15px; line-height:1.5; max-width:62ch; margin:0 0 4px;}
@@ -101,31 +60,32 @@
   }
   .pill b{color:var(--ink); font-weight:600;}
   button.toggle{
-    font-family:inherit; font-size:13px; font-weight:600; color:var(--ink);
-    background:var(--surface-2); border:1px solid var(--line-strong);
-    border-radius:8px; padding:8px 14px; cursor:pointer;
+    font-family:inherit; font-size:14px; font-weight:700; color:var(--ink);
+    background:var(--lime); border:1px solid transparent;
+    border-radius:10px; min-height:52px; padding:12px 16px; cursor:pointer;
   }
-  button.toggle:hover{background:var(--surface-3);}
+  button.toggle:hover{background:#A7E32F;}
   button.toggle:focus-visible, a:focus-visible, .colbtn:focus-visible{outline:2px solid var(--blue); outline-offset:2px;}
 
   .panel{
-    border-left: 3px solid var(--accent, var(--blue));
+    border:1px solid var(--line);
+    border-top:3px solid var(--accent,var(--blue));
     background:var(--surface-2);
-    border-radius:4px 10px 10px 4px;
+    border-radius:12px;
     padding:18px 18px 10px;
     margin-bottom:16px;
   }
   .panel.callout{
-    border-left-color: var(--red);
-    background: var(--red-soft);
+    border-top-color:var(--blue);
+    background:var(--surface-3);
     padding:14px 16px;
-    font-size:13px;
-    line-height:1.55;
+    font-size:15px;
+    line-height:1.6;
     color: var(--ink);
   }
   .panel.callout strong{color:var(--ink);}
   .panel-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:2px;}
-  .panel-title{font-size:15.5px; font-weight:600;}
+  .panel-title{font-size:17px;font-weight:700;}
   .panel-note{font-size:12px; color:var(--ink-mute);}
   .legend{display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-soft); margin:2px 0 10px;}
   .legend span{display:inline-flex; align-items:center; gap:6px;}
@@ -136,8 +96,8 @@
   svg{display:block; width:100%; height:auto; overflow:visible;}
   .gridline{stroke:var(--line); stroke-width:1;}
   .zeroline{stroke:var(--line-strong); stroke-width:1.2;}
-  .axislabel{fill:var(--ink-mute); font-size:10.3px; font-family:"IBM Plex Sans", sans-serif;}
-  .qlabel{fill:var(--ink-soft); font-size:10.3px; font-family:"IBM Plex Sans", sans-serif; text-anchor:middle;}
+  .axislabel{fill:var(--ink-mute); font-size:10.3px; font-family:"Inter", sans-serif;}
+  .qlabel{fill:var(--ink-soft); font-size:10.3px; font-family:"Inter", sans-serif; text-anchor:middle;}
   .qlabel.small{font-size:8.6px;}
   .valuelabel{fill:var(--ink); font-size:10.3px; font-weight:600; font-variant-numeric:tabular-nums; text-anchor:middle;}
   .hitcol{fill:transparent; cursor:crosshair;}
@@ -162,17 +122,27 @@
   }
   table.datatable th:first-child, table.datatable td:first-child{text-align:left; color:var(--ink-soft); font-weight:500;}
   table.datatable thead th{color:var(--ink-mute); font-weight:600; font-size:11.5px; border-bottom:1px solid var(--line-strong);}
-  .tablewrap{overflow-x:auto; margin-bottom:8px;}
+  .tablewrap{overflow-x:auto;margin-bottom:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;}
+  table.datatable thead th{background:var(--surface-3);}
+  @media (max-width:640px){
+    .panel{padding:16px;}
+    .chart-scroll{overflow-x:auto;}
+    .chartbox{min-width:640px;}
+    .tooltip{top:8px!important;transform:none;}
+  }
 
   footer{margin-top:22px; padding-top:16px; border-top:1px solid var(--line);}
   footer p{font-size:12px; color:var(--ink-mute); line-height:1.6; margin:0 0 8px;}
   footer strong{color:var(--ink-soft);}
   [hidden]{display:none!important;}
 </style>
-
-<div class="wrap">
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
   <h1>Резервы и проблемные кредиты</h1>
   <p class="sub">Отчисления в резервы, доля проблемных кредитов, их покрытие резервами и просроченная задолженность — кредиты юридическим лицам (ЮЛ) и физическим лицам (ФЛ), по кварталам и месяцам.</p>
+  </header>
   <p class="src">Банк России: квартальные обзоры «Банковский сектор» (4 кв. 2023 — 2 кв. 2026) и ежемесячный материал «О развитии банковского сектора РФ» (сен. 2025 — окт. 2026, данные на 23.11.26)</p>
 
   <div class="toolbar">
@@ -200,7 +170,7 @@
     <p><strong>Пробелы в данных.</strong> Покрытие резервами и залогами (вторая линия на графике покрытия) для 4 кв. 2023 — 2 кв. 2024 не найдено — на графике эта точка пропущена, а не приравнена к нулю. Отчисления в резервы за 4 кв. 2023 — 2 кв. 2024 взяты из отдельного обзора и перепроверены: значения за 2–4 кв. 2024 совпали с ранее подтверждёнными (96 / 66 / 45 млрд ₽). Точки на конец III квартала 2026 года взяты из текста октябрьского обзора. Прочерк означает отсутствие точного значения в использованных данных.</p>
     <p><strong>За пределами графика.</strong> Данные за 1 кв. 2022 — 3 кв. 2023 из присланных скриншотов сюда не включены: точный источник и определение показателей на этом отрезке не подтверждены. Пришлите название отчёта — дополню страницу.</p>
   </footer>
-</div>
+</main>
 
 <script>
 (function(){
@@ -302,7 +272,9 @@
 
     var tip = document.createElement("div"); tip.className="tooltip";
     box.appendChild(svg); box.appendChild(tip);
-    panel.appendChild(box);
+    var scroll = document.createElement("div"); scroll.className = "chart-scroll";
+    scroll.appendChild(box);
+    panel.appendChild(scroll);
     chartsEl.appendChild(panel);
 
     for(var i=0;i<count;i++){
