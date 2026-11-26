@@ -1112,15 +1112,23 @@ function renderRsbu(box, selBank){
 }
 
 /* ---------- страница банка ---------- */
+function periodTH(p,label,cls=""){
+  const heading=p.pharma&&label.match(/^(Прогноз\s+2026|П2026)(?:\s+(.+))?$/i);
+  if(heading){
+    const [,period,detail]=heading;
+    return `<th style="width:7rem;max-width:7rem;white-space:normal;line-height:1.25;vertical-align:bottom">${esc(period)}${detail?`<br>${esc(detail)}`:""}</th>`;
+  }
+  return `<th${cls===null?"":` class="${cls}"`}>${esc(label)}</th>`;
+}
 function tableHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.blocks.some(b=>b.rows.some(r=>isNum(r.vals[i]))));
-  const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
+  const th=cols.map(i=>periodTH(p,p.cols[i].label,p.cols[i].kind==="ltm"?"ltm":"")).join("");
   const body=p.blocks.map(b=>`<tr class="grp"><td colspan="${cols.length+1}">${b.title}</td></tr>`+b.rows.map(r=>{const nd=/чистый долг|net debt|^долг\s*\/\s*ebitda/i.test(r.label); return `<tr class="${r.sub?"sub":""}"><td>${esc(r.label)}</td>${cols.map(i=>{const v=r.vals[i];return `<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${isNum(v)&&v<0?(nd?"goodneg":"neg"):""}">${fmt(v,r.pct||p.cols[i].kind==="cagr"?"pct":"")}</td>`}).join("")}</tr>`}).join("")).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Показатель</th>${th}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function multHTML(p,mode){
   const cols=p.cols.map((c,i)=>i).filter(i=>mode==="all"||(mode==="year"?p.cols[i].kind!=="q":p.cols[i].kind!=="year")).filter(i=>p.mult.some(m=>isNum(m.vals[i])&&m.vals[i]!==0));
-  const th=cols.map(i=>`<th class="${p.cols[i].kind==="ltm"?"ltm":""}">${esc(p.cols[i].label)}</th>`).join("");
+  const th=cols.map(i=>periodTH(p,p.cols[i].label,p.cols[i].kind==="ltm"?"ltm":"")).join("");
   // отрицательный Долг/EBITDA: при отрицательной EBITDA — плохо (красный), при отрицательном чистом долге — хорошо (зелёный)
   const ebRow=findRow(p,/^(скорр\.?\s*)?(ebitda|oibda)/i);
   const body=p.mult.map(m=>{const label=norm(m.label);
@@ -1162,7 +1170,7 @@ function fcHTML(p,price,avg){
       const prev=b.rows[index-1];
       const keys=["v1","v2","v3","v4"];
       return `<tr><td>${esc(l)}</td>${values.map((value,i)=>{const target=prev?.[keys[i]];return `<td>${cell((p.financeId||p.pharma)&&up&&isNum(price)&&price>0&&/^целевая цена/i.test(prev?.label||"")&&isNum(target)?target/price-1:value)}</td>`;}).join("")}</tr>`}).join("");
-    return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»${b.h3?` · «${esc(b.h3)}»`:""}${b.h4?` · «${esc(b.h4)}»`:""}</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th><th>${esc(b.h2)}</th>${b.h3?`<th>${esc(b.h3)}</th>`:""}${b.h4?`<th>${esc(b.h4)}</th>`:""}</tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
+    return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»${b.h3?` · «${esc(b.h3)}»`:""}${b.h4?` · «${esc(b.h4)}»`:""}</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th>${periodTH(p,b.h2,null)}${b.h3?periodTH(p,b.h3,null):""}${b.h4?`<th>${esc(b.h4)}</th>`:""}</tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
   if(avg&&avg.fairSpec!==undefined){ if(avg.nav) return `<div class="fc">${cards}</div>`; return `<div class="fc">${cards}</div>${fairBlock(avg,price)}`; }
   const fin=f&&avg&&isNum(avg.fair)?`<div class="final"><div class="big"><span class="lbl">Итоговая справедливая стоимость · среднее ${f.labels.map((l,i)=>isNum(f.values[i])&&f.values[i]>0?`${esc(l)}: ${rub(f.values[i])}`:"").filter(Boolean).join(" и ")}</span><b>${rub(avg.fair)}</b>${pctBadge(avg.up)}</div><div class="tile"><span>Текущая цена</span><b>${rub(price)}</b></div></div>`
