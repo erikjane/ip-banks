@@ -423,6 +423,7 @@ function compSummary(secId,c){
   if(secId==="metals"){
     p.isMetals=true;
     out.targetNote=g.find(row=>row[0]==="Комментарий к целевой цене")?.[1];
+    if(p.final) p.final.values=p.final.values.map(value=>isNum(value)?Math.max(0,value):value);
     out.fair=p.final?.values[1]??null;
     out.up=isNum(out.fair)&&out.fair>=0&&price>0?out.fair/price-1:null;
     if(p.final) p.final.upside=p.final.values.map(value=>isNum(value)&&value>=0&&price>0?value/price-1:null);
@@ -520,7 +521,7 @@ function renderSector(secId){
   if(S.kind==="fin") return renderSectorFin(secId,S,A,app,btns,c,up);
   const body=A.rows.map(({c:co,s})=>`<tr class="link" onclick="location.hash='${secId}-${co.id}'"><td>${esc(co.short)} <small style="color:var(--muted)">${co.ticker}</small></td>
     <td>${fmt(s.cap)}</td><td>${fmt(s.rev)}${secId==="medicine"?" "+(co.unit||"млрд ₽"):""}</td><td class="${c(s.mE,A.mE,1)}">${fmt(s.mE,"pct")}</td><td class="${c(s.mNet,A.mNet,1)}">${fmt(s.mNet,"pct")}</td>
-    <td class="${isNum(s.pe)&&s.pe>0?c(s.pe,A.pe,-1):""}">${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted)">убыток</span>':fmt(s.pe)}</td><td class="${c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${isNum(s.debtE)&&s.debtE<0?(isNum(s.ebitda)&&s.ebitda<0?"bd":"gd"):c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
+    <td class="${isNum(s.pe)&&s.pe>0?c(s.pe,A.pe,-1):""}">${isNum(s.pe)&&s.pe<=0?'<span style="color:var(--muted)">убыток</span>':fmt(s.pe)}</td><td class="${secId==="metals"&&isNum(s.evE)&&s.evE<0&&s.ebitda<0?"bd":c(s.evE,A.evE,-1)}">${fmt(s.evE)}</td><td class="${isNum(s.debtE)&&s.debtE<0?(isNum(s.ebitda)&&s.ebitda<0?"bd":"gd"):c(s.debtE,A.debtE,-1)}">${fmt(s.debtE)}</td>
     <td class="${c(s.dy,A.dy,1)}">${fmt(s.dy,"pct")}${s.dyFc?' <small style="color:var(--muted)">(прогноз)</small>':""}</td><td>${up(s.up)}</td></tr>`).join("");
   const notes=[A.peLoss.length?`P/E: ${A.peLoss.join(", ")} — убыток, в средний P/E не ${A.peLoss.length>1?"входят":"входит"}.`:"", A.pbOut.length?`P/B: ${A.pbOut.join(", ")} — собственный капитал маленький, в средний P/B не ${A.pbOut.length>1?"входят":"входит"}.`:""].filter(Boolean).join(" ");
   app.innerHTML=`<div class="crumbs"><a href="#sectors">Отрасли</a> / ${esc(S.name)}</div>
@@ -967,7 +968,7 @@ function multHTML(p,mode){
   const ebRow=findRow(p,/^(скорр\.?\s*)?(ebitda|oibda)/i);
   const body=p.mult.map(m=>{const label=norm(m.label);
     const roe=(p.financeId||p.isMedicine)&&/^roe(?:\s*[,(:]\s*%\)?)?$/i.test(label);
-    const pct=roe||(p.pharma&&/^(roe(?:\s*[,(:]\s*%\)?)?|free\s*float|инфляция)$/i.test(label))||((p.financeId||p.isMedicine)&&/^(free\s*float|e\/p)$/i.test(label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":((p.financeId||roe)&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":roe?(v>m.avg?"lo":"hi"):(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
+    const pct=roe||(p.pharma&&/^(roe(?:\s*[,(:]\s*%\)?)?|free\s*float|инфляция)$/i.test(label))||((p.financeId||p.isMedicine)&&/^(free\s*float|e\/p)$/i.test(label)); const val=v=>fmt(v,pct?"pct":""); const debt=/^долг/.test(norm(m.label)), cls=(v,i)=>!isNum(v)?"":p.isMetals&&label==="ev/ebitda"&&v<0&&ebRow?.vals[i]<0?"hi":(debt&&v<0)?(ebRow&&isNum(ebRow.vals[i])&&ebRow.vals[i]<0?"hi badneg":"lo goodneg"):!isNum(m.avg)?"":((p.financeId||roe)&&(val(v)===val(m.avg)||(pct&&Math.abs(v-m.avg)<0.001)))?"nm":roe?(v>m.avg?"lo":"hi"):(v<0&&!debt)?"nm":v<m.avg?"lo":v>m.avg?"hi":"";
     return `<tr><td>${esc(m.label)}</td><td class="avg"><b>${val(m.avg)}</b></td>${cols.map(i=>`<td class="${p.cols[i].kind==="ltm"?"ltm":""} ${cls(m.vals[i],i)}">${val(m.vals[i])}</td>`).join("")}</tr>`}).join("");
   return `<div class="tbl fin"><table><thead><tr><th>Мультипликатор</th><th class="avg">Среднее</th>${th}</tr></thead><tbody>${body}</tbody></table></div>
     <div class="legend2"><span><i style="background:#DCFCE7"></i>ниже своего среднего — дешевле истории</span><span><i style="background:#FEE2E2"></i>выше среднего — дороже истории</span><span><i style="background:#F1F5F9"></i>${p.financeId||p.isMedicine?"серым — на уровне среднего или отрицательный (убыток)":"серым — отрицательный (убыток), не сравнивается"}</span>${p.financeId||p.isMedicine?'<span>ROE: выше среднего — зелёный, ниже — красный.</span>':""}</div>`;
@@ -990,7 +991,8 @@ function navHTML(s){
 }
 function fcHTML(p,price,avg){
   if(!p.fc.length) return `<p class="note">На листе нет блока «Мультипликаторный прогноз».</p>`;
-  const forecastUp=v=>p.isIndustry&&v===-1?`<span class="badge down">−100%</span>`:pctBadge(v);
+  const floorTargets=p.isIndustry||p.isMetals;
+  const forecastUp=v=>floorTargets&&v===-1?`<span class="badge down">−100%</span>`:pctBadge(v);
   const nm={"p/e":"По P/E (цена / прибыль)","ev/ebitda":"По EV/EBITDA","p/b":"По P/B (цена / капитал)"};
   const cards=p.fc.map(b=>{const cnt={};
     const ml={}; b.rows.forEach(r=>{const m=r.label.match(p.pharma||p.isMedicine?/^([123])\.?\s*мультипликатор\s*(.*)$/i:/^([12])\s*мультипликатор\s*(.*)$/i); if(m) ml[m[1]]=m[2].trim();});
@@ -1000,11 +1002,11 @@ function fcHTML(p,price,avg){
       if(m){const suf=m[2]||""; cnt[suf]=(cnt[suf]||0)+1; l=`Целевая цена ${suf} · ${by(cnt[suf])}`;}
       const up=/^апсайд/i.test(r.label), tp=/^целевая цена/i.test(r.label);
       const nd=/чистого долга|чистый долг/i.test(r.label);
-      const cell=v=>nd&&isNum(v)&&v<0?`<span class="goodneg">${fmt(v)}</span>`:up?forecastUp(v):tp?(p.isIndustry&&isNum(v)?`<b>${rub(Math.max(0,v))}</b>`:isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
+      const cell=v=>nd&&isNum(v)&&v<0?`<span class="goodneg">${fmt(v)}</span>`:up?forecastUp(v):tp?(floorTargets&&isNum(v)?`<b>${rub(Math.max(0,v))}</b>`:isNum(v)&&v>0?`<b>${rub(v)}</b>`:isNum(v)&&v<0?`<b style="color:#B91C1C" title="Отрицательная: долг больше оценки бизнеса">${rub(v)}</b>`:`<span class="badge na">н/д</span>`):fmt(v);
       const values=[r.v1,r.v2,...(b.h3?[r.v3]:[]),...(b.h4?[r.v4]:[])];
       const prev=b.rows[index-1];
       const keys=["v1","v2","v3","v4"];
-      return `<tr><td>${esc(l)}</td>${values.map((value,i)=>{const target=prev?.[keys[i]];return `<td>${cell((p.financeId||p.pharma||p.isIndustry||p.isMetals)&&up&&isNum(price)&&price>0&&/^целевая цена/i.test(prev?.label||"")&&isNum(target)?(p.isMetals&&target<0?null:(p.isIndustry?Math.max(0,target):target)/price-1):value)}</td>`;}).join("")}</tr>`}).join("");
+      return `<tr><td>${esc(l)}</td>${values.map((value,i)=>{const target=prev?.[keys[i]];return `<td>${cell((p.financeId||p.pharma||p.isIndustry||p.isMetals)&&up&&isNum(price)&&price>0&&/^целевая цена/i.test(prev?.label||"")&&isNum(target)?(floorTargets?Math.max(0,target):target)/price-1:value)}</td>`;}).join("")}</tr>`}).join("");
     return `<div class="card"><h3>${nm[norm(b.method)]||esc(b.method)}</h3><p class="hint">Сценарии: «${esc(b.h1)}» и «${esc(b.h2)}»${b.h3?` · «${esc(b.h3)}»`:""}${b.h4?` · «${esc(b.h4)}»`:""}</p><div class="tbl" style="border:0"><table><thead><tr><th></th><th>${esc(b.h1)}</th>${periodTH(p,b.h2,null)}${b.h3?periodTH(p,b.h3,null):""}${b.h4?`<th>${esc(b.h4)}</th>`:""}</tr></thead><tbody>${rows}</tbody></table></div></div>`}).join("");
   const f=p.final;
   if(avg&&avg.fairSpec!==undefined){ if(avg.nav) return `<div class="fc">${cards}</div>`; return `<div class="fc">${cards}</div>${fairBlock(avg,price)}`; }
